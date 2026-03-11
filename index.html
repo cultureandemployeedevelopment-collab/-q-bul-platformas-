@@ -355,7 +355,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ▶ GOOGLE SHEETS URL — BURAYA YAPIŞDIRIN
 // ═══════════════════════════════════════════════════════════
 // Deploy etdikdən sonra aldığınız URL-i aşağıdakı dəyişənə yazın:
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzyCBBPIFM15A5WgVIajiG1Uk5ycAJMQGOtKGnepx41miZnNF_xUX_YMsbr6r-0T4N40Q/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxzHv2qJ2kt0EVISbd8esNLqr5-uZmQvjOcEBBGd3NYamg4sdaZ51kLC1K9sh0-qEBk7A/exec';
 // Nümunə: 'https://script.google.com/macros/s/AKfycbx.../exec'
 // ═══════════════════════════════════════════════════════════
 
@@ -423,59 +423,95 @@ function saveSheetsUrl(){
   updateSyncBar();
 }
 
-async function testSheetsUrl(){
+// ── JSONP ilə CORS xətası olmadan Apps Script çağırışı ──────────
+// fetch() CORS blok edir, JSONP isə <script> tagi ilə işləyir
+function callSheetsJSONP(url, action, data, onSuccess, onError){
+  const cbName = 'ghg_cb_' + Date.now();
+  const fullUrl = url
+    + '?action=' + encodeURIComponent(action)
+    + '&data='   + encodeURIComponent(JSON.stringify(data))
+    + '&callback=' + cbName;
+
+  const script = document.createElement('script');
+  script.src = fullUrl;
+
+  const timer = setTimeout(function(){
+    cleanup();
+    onError(new Error('Timeout — 15 saniyə keçdi'));
+  }, 15000);
+
+  function cleanup(){
+    clearTimeout(timer);
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  window[cbName] = function(result){
+    cleanup();
+    onSuccess(result);
+  };
+
+  script.onerror = function(){
+    cleanup();
+    onError(new Error('Script yüklənmədi — URL yoxlayın'));
+  };
+
+  document.head.appendChild(script);
+}
+
+function testSheetsUrl(){
   const url = g('sheetsUrl').value.trim();
   if(!url){ toast('URL daxil edin','er'); return; }
   const el = g('sheetsTestResult');
   el.innerHTML = '<span style="color:var(--yellow)">⏳ Test edilir...</span>';
-  try {
-    const res = await callSheets(url, 'ping', {});
-    if(res && res.ok){
-      el.innerHTML = '<span style="color:var(--green)">✅ Bağlantı uğurlu! ' + (res.msg||'') + '</span>';
-    } else {
-      el.innerHTML = '<span style="color:var(--red)">❌ Xəta: ' + JSON.stringify(res) + '</span>';
+  callSheetsJSONP(url, 'ping', {},
+    function(res){
+      if(res && res.ok){
+        el.innerHTML = '<span style="color:var(--green)">✅ Bağlantı uğurlu! ' + (res.msg||'') + '</span>';
+      } else {
+        el.innerHTML = '<span style="color:var(--red)">❌ Script xətası: ' + JSON.stringify(res) + '</span>';
+      }
+    },
+    function(err){
+      el.innerHTML = '<span style="color:var(--red)">❌ ' + err.message + '</span>';
     }
-  } catch(err) {
-    el.innerHTML = '<span style="color:var(--red)">❌ Bağlantı xətası: ' + err.message + '</span>';
-  }
+  );
 }
 
-async function callSheets(url, action, data){
-  const fullUrl = url + '?action=' + action + '&data=' + encodeURIComponent(JSON.stringify(data));
-  const res = await fetch(fullUrl, { method:'GET', mode:'cors' });
-  return await res.json();
-}
-
-async function syncToSheets(silent=false){
+function syncToSheets(silent){
+  if(silent===undefined) silent=false;
   const url = getSheetsUrl();
-  if(!url){
-    if(!silent) openSheetsSetup();
-    return;
-  }
+  if(!url){ if(!silent) openSheetsSetup(); return; }
   setSyncState('spin','Sinxronlaşdırılır...');
-  try {
-    const fullUrl = url;
-    const body = JSON.stringify({ action:'sync', data:DB });
-    const res = await fetch(fullUrl, {
-      method:'POST',
-      mode:'cors',
-      headers:{'Content-Type':'application/json'},
-      body
-    });
-    const result = await res.json();
-    if(result.ok){
-      setSyncState('ok', `Son sinxron: ${now()}`);
-      if(result.url) updateSyncUrl(result.url);
-      if(!silent) toast('Google Sheets sinxronlaşdırıldı! ✅','ok');
-      log(`Google Sheets sinxron: ${Object.values(result.counts||{}).reduce((a,b)=>a+b,0)} sətir yazıldı`,'G');
-    } else {
-      setSyncState('er','Xəta: ' + (result.msg||result.error||''));
-      if(!silent) toast('Sinxron xətası: ' + (result.msg||''),'er');
+
+  // Data çox böyük olduqda URL limiti aşa bilər — əsas sahələri göndəririk
+  const payload = {
+    users:    DB.users,
+    requests: DB.requests,
+    evals:    DB.evals,
+    chains:   DB.chains,
+    logs:     DB.logs.slice(0,200)
+  };
+
+  callSheetsJSONP(url, 'sync', payload,
+    function(result){
+      if(result.ok){
+        setSyncState('ok', 'Son sinxron: ' + now());
+        if(result.url) updateSyncUrl(result.url);
+        if(!silent) toast('Google Sheets sinxronlaşdırıldı! ✅','ok');
+        const total = Object.values(result.counts||{}).reduce(function(a,b){return a+b;},0);
+        log('Google Sheets: ' + total + ' sətir yazıldı','G');
+        save();
+      } else {
+        setSyncState('er','Xəta: ' + (result.msg||result.error||''));
+        if(!silent) toast('Sinxron xətası: ' + (result.msg||''),'er');
+      }
+    },
+    function(err){
+      setSyncState('er','Bağlantı xətası');
+      if(!silent) toast('Bağlantı xətası: ' + err.message,'er');
     }
-  } catch(err){
-    setSyncState('er','Bağlantı xətası');
-    if(!silent) toast('Bağlantı xətası: ' + err.message,'er');
-  }
+  );
 }
 
 function setSyncState(state, txt){
