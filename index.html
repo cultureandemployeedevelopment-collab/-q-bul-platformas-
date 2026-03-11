@@ -355,7 +355,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ▶ GOOGLE SHEETS URL — BURAYA YAPIŞDIRIN
 // ═══════════════════════════════════════════════════════════
 // Deploy etdikdən sonra aldığınız URL-i aşağıdakı dəyişənə yazın:
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxzHv2qJ2kt0EVISbd8esNLqr5-uZmQvjOcEBBGd3NYamg4sdaZ51kLC1K9sh0-qEBk7A/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzUytfbEUuyS4VNSJ7Rg_rGteSOcgLlwj0zwSi-QGL8aIO93jrM006r_r9OVyGL6uiZ/exec';
 // Nümunə: 'https://script.google.com/macros/s/AKfycbx.../exec'
 // ═══════════════════════════════════════════════════════════
 
@@ -387,7 +387,18 @@ try {
 } catch(e){ DB = freshStore(); }
 save();
 
-function save(){ try{localStorage.setItem(SK,JSON.stringify(DB));}catch(e){} }
+function save(){
+  try{ localStorage.setItem(SK, JSON.stringify(DB)); } catch(e){}
+  // Avtomatik sinxronlaşdırma — hər dəyişiklikdən sonra
+  scheduleSyncToSheets();
+}
+
+// Çox tez-tez çağırılmasın deyə 2 saniyə gözləyir (debounce)
+let _syncTimer = null;
+function scheduleSyncToSheets(){
+  if(_syncTimer) clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(function(){ }, 2000);
+}
 function uid(){  return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function now(){  return new Date().toLocaleString('az-AZ'); }
 function nowMs(){ return Date.now(); }
@@ -1116,7 +1127,6 @@ function submitReq(editId=null){
     DB.requests.push(req);
     log(`Yeni tələb: ${data.positionTitle} (${CU.name})`,'B');
     save();toast('Tələb göndərildi!','ok');
-    syncToSheets(true);
   }
   cm('mReq');navRefresh();
 }
@@ -1175,14 +1185,14 @@ function approveReq(reqId){
   log(`Tələb təsdiqləndi: ${req.positionTitle} (${CU.name})`,'G');
   if(req.approvals.length>=chain.length){req.status='inprog';toast('Tam təsdiqləndi!','ok');}
   else toast('Təsdiq etdiniz!','ok');
-  save();buildNav();go(activePage);syncToSheets(true);
+  save();buildNav();go(activePage);
 }
 function rejectReq(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const reason=prompt('Rədd etmə səbəbi:');
   req.status='rejected';req.rejectedBy=CU.name;req.rejectedAt=now();req.rejectReason=reason||'';
   log(`Tələb rədd edildi: ${req.positionTitle} (${CU.name})`,'R');
-  save();toast('Rədd edildi','ok');go(activePage);syncToSheets(true);
+  save();toast('Rədd edildi','ok');go(activePage);
 }
 function adminAdvanceReq(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
@@ -1190,20 +1200,20 @@ function adminAdvanceReq(reqId){
   if(idx>=chain.length){toast('Zəncir bitib','er');return;}
   req.approvals.push({uid:'admin',name:'Admin (məcburi)',time:now(),action:'admin_advance'});
   if(req.approvals.length>=chain.length){req.status='inprog';}
-  save();toast('İrəlilədi','ok');pgAllReqs();syncToSheets(true);
+  save();toast('İrəlilədi','ok');pgAllReqs();
 }
 function adminApproveAll(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const chain=getChainForReq(req);
   req.approvals=chain.map(s=>({uid:s.uid,name:DB.users.find(u=>u.id===s.uid)?.name||'Admin',time:now(),action:'admin_full'}));
   req.status='inprog';
-  log(`Admin tam təsdiqləndi: #${req.reqId}`,'G');save();toast('Tam təsdiqləndi!','ok');cm('mReq');pgAllReqs();syncToSheets(true);
+  log(`Admin tam təsdiqləndi: #${req.reqId}`,'G');save();toast('Tam təsdiqləndi!','ok');cm('mReq');pgAllReqs();
 }
 function adminRejectReq(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const reason=prompt('Rədd etmə səbəbi:');
   req.status='rejected';req.rejectedBy='Admin';req.rejectedAt=now();req.rejectReason=reason||'';
-  save();toast('Rədd edildi','ok');pgAllReqs();syncToSheets(true);
+  save();toast('Rədd edildi','ok');pgAllReqs();
 }
 function adminDeleteReq(reqId){
   const req=DB.requests.find(r=>r.id===reqId);
@@ -1218,13 +1228,13 @@ function recruiterAdvance(reqId){
   req.approvals.push({uid:CU.id,name:`Recruiter: ${CU.name}`,time:now(),action:'rec_advance'});
   if(req.approvals.length>=chain.length){req.status='inprog';toast('Tam irəlilədi!','ok');}
   else toast('Növbəti addıma göndərildi','ok');
-  save();pgRecReqs();syncToSheets(true);
+  save();pgRecReqs();
 }
 function recruiterReject(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const reason=prompt('Rədd səbəbi:');
   req.status='rejected';req.rejectedBy=`Recruiter: ${CU.name}`;req.rejectedAt=now();req.rejectReason=reason||'';
-  save();toast('Rədd edildi','ok');pgRecReqs();syncToSheets(true);
+  save();toast('Rədd edildi','ok');pgRecReqs();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1345,7 +1355,6 @@ function submitEval(){
   log(`Dəyərləndirmə: ${cname} (${CU.name})`,'B');
   if(lmId){const lm=DB.users.find(u=>u.id===lmId);if(lm)log(`Form ${lm.name}-ə göndərildi`,'Y');}
   save();cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');
-  syncToSheets(true);
   if(CU.role==='recruiter')pgRecCands();
 }
 
@@ -1475,8 +1484,7 @@ function recApprove(evalId){
   const ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
   const note=prompt('Qeyd (ixtiyari):');
   ev.recruiterNote=note||'';ev.recruiterApproved=true;ev.recruiterApprovedAt=now();ev.recruiterName=CU.name;
-  log(`Recruiter uyğun gördü: ${ev.candidateName}`,'G');save();toast('Uyğun qeyd edildi','ok');
-  syncToSheets(true);pgRecCands();
+  log(`Recruiter uyğun gördü: ${ev.candidateName}`,'G');save();toast('Uyğun qeyd edildi','ok');pgRecCands();
 }
 
 let _hireId=null;
@@ -1493,8 +1501,7 @@ function confirmHire(){
   const ev=DB.evals.find(e=>e.id===_hireId);if(!ev)return;
   ev.hired=true;ev.hiredAt=now();ev.hiredBy=CU.name;ev.hireNote=g('hireNote').value;
   const req=DB.requests.find(r=>r.id===ev.requestId);if(req)req.status='hired';
-  log(`🎉 İşə qəbul: ${ev.candidateName} (${CU.name})`,'P');save();cm('mHire');toast(`${ev.candidateName} işə qəbul edildi! 🎉`,'ok');
-  syncToSheets(true);pgRecCands();
+  log(`🎉 İşə qəbul: ${ev.candidateName} (${CU.name})`,'P');save();cm('mHire');toast(`${ev.candidateName} işə qəbul edildi! 🎉`,'ok');pgRecCands();
 }
 
 let _ceoId=null;
@@ -1509,7 +1516,7 @@ function saveCEO(){
   const id=g('ceoSel').value;if(!id){toast('Şəxs seçin','er');return;}
   const u=DB.users.find(x=>x.id===id);
   ev.ceoAssigned=id;ev.ceoNote=g('ceoNote').value;ev.ceoAssignedAt=now();
-  log(`${u?.name}-ə CEO müsahibəsi: ${ev.candidateName}`,'B');save();cm('mCEO');toast(`${u?.name}-ə göndərildi`,'ok');syncToSheets(true);
+  log(`${u?.name}-ə CEO müsahibəsi: ${ev.candidateName}`,'B');save();cm('mCEO');toast(`${u?.name}-ə göndərildi`,'ok');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1611,14 +1618,13 @@ function submitLmEval(){
   ev.lmRatings=lmRatings;ev.lmRecommendation=res.value;
   ev.lmRecs=g('lm_recs').value;ev.lmSalaryExp=g('lm_sal').value;ev.lmAdditionalComments=g('lm_add').value;
   ev.lmFormFilled=true;ev.lmFilledAt=now();ev.lineManagerApproved=true;ev.lineManagerApprovedAt=now();ev.lineManagerName=CU.name;
-  log(`LM dəyərləndirdi: ${ev.candidateName} (${CU.name})`,'G');save();cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');
-  syncToSheets(true);pgUserEvals();
+  log(`LM dəyərləndirdi: ${ev.candidateName} (${CU.name})`,'G');save();cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');pgUserEvals();
 }
 function ceoApprove(evalId){
   const ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
   const note=prompt('CEO notu (ixtiyari):');
   ev.ceoNote2=note||'';ev.ceoApproved=true;ev.ceoApprovedAt=now();ev.ceoName=CU.name;
-  log(`CEO uyğun gördü: ${ev.candidateName}`,'P');save();toast('Uyğun qeyd edildi','ok');syncToSheets(true);pgUserEvals();
+  log(`CEO uyğun gördü: ${ev.candidateName}`,'P');save();toast('Uyğun qeyd edildi','ok');pgUserEvals();
 }
 
 function pgUserNotes(){
