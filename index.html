@@ -355,7 +355,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ▶ GOOGLE SHEETS URL — BURAYA YAPIŞDIRIN
 // ═══════════════════════════════════════════════════════════
 // Deploy etdikdən sonra aldığınız URL-i aşağıdakı dəyişənə yazın:
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzUytfbEUuyS4VNSJ7Rg_rGteSOcgLlwj0zwSi-QGL8aIO93jrM006r_r9OVyGL6uiZ/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwqTpOjVR8PbkpjtO9_P66S0K_z2fLrpAmn4tP6aB4XKa8xz9uySiI4bZHzXv5LJf9E/exec';
 // Nümunə: 'https://script.google.com/macros/s/AKfycbx.../exec'
 // ═══════════════════════════════════════════════════════════
 
@@ -389,15 +389,15 @@ save();
 
 function save(){
   try{ localStorage.setItem(SK, JSON.stringify(DB)); } catch(e){}
-  // Avtomatik sinxronlaşdırma — hər dəyişiklikdən sonra
-  scheduleSyncToSheets();
+  // Avtomatik sinxronlaşdırma — yalnız giriş edilmiş olduqda
+  if(CU){ scheduleSyncToSheets(); }
 }
 
 // Çox tez-tez çağırılmasın deyə 2 saniyə gözləyir (debounce)
 let _syncTimer = null;
 function scheduleSyncToSheets(){
   if(_syncTimer) clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(function(){ }, 2000);
+  _syncTimer = setTimeout(function(){ syncToSheets(true); }, 2000);
 }
 function uid(){  return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function now(){  return new Date().toLocaleString('az-AZ'); }
@@ -567,7 +567,7 @@ function renderSyncBar(){
 // ═══════════════════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════════════════
-let CU = null;
+var CU = null;
 
 function doLogin(){
   const u=g('liU').value.trim(), p=g('liP').value;
