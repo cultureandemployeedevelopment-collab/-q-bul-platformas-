@@ -355,7 +355,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ▶ GOOGLE SHEETS URL — BURAYA YAPIŞDIRIN
 // ═══════════════════════════════════════════════════════════
 // Deploy etdikdən sonra aldığınız URL-i aşağıdakı dəyişənə yazın:
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwqTpOjVR8PbkpjtO9_P66S0K_z2fLrpAmn4tP6aB4XKa8xz9uySiI4bZHzXv5LJf9E/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzvpZdeRjlvS714c17PjUy4-pqvU0smf8qOc8H9GCEV6jq8cXnlWi9fX2Sp0f4r_WVh/exec';
 // Nümunə: 'https://script.google.com/macros/s/AKfycbx.../exec'
 // ═══════════════════════════════════════════════════════════
 
@@ -489,6 +489,70 @@ function testSheetsUrl(){
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// YENİ: Sheets-dən məlumat oxuma funksiyası
+// ═══════════════════════════════════════════════════════════
+function syncFromSheets(silent){
+  if(silent===undefined) silent=false;
+  const url = getSheetsUrl();
+  if(!url){ if(!silent) toast('Sheets URL quraşdırılmayıb','er'); return; }
+  
+  setSyncState('spin','Sheets-dən oxunur...');
+  
+  callSheetsJSONP(url, 'getData', {},
+    function(result){
+      if(result.ok){
+        // İstifadəçiləri Sheets-dən localStorage-ə yüklə
+        if(result.users && result.users.length > 0){
+          // Admin istifadəçisini saxla
+          const admin = DB.users.find(u => u.role === 'admin');
+          // Yeni istifadəçiləri birləşdir
+          const existingIds = new Set(DB.users.map(u => u.id));
+          let newCount = 0;
+          
+          result.users.forEach(function(u){
+            if(!existingIds.has(u.id) && u.role !== 'admin'){
+              DB.users.push(u);
+              newCount++;
+            } else if(u.role !== 'admin') {
+              // Mövcud istifadəçini yenilə
+              const idx = DB.users.findIndex(x => x.id === u.id);
+              if(idx !== -1) DB.users[idx] = u;
+            }
+          });
+          
+          if(newCount > 0){
+            log('Sheets-dən ' + newCount + ' yeni istifadəçi yükləndi','G');
+            toast(newCount + ' yeni istifadəçi yükləndi','ok');
+          }
+        }
+        
+        // Digər məlumatları da yüklə
+        if(result.requests) DB.requests = result.requests;
+        if(result.evals) DB.evals = result.evals;
+        if(result.chains) DB.chains = result.chains;
+        if(result.logs) DB.logs = result.logs;
+        
+        save();
+        setSyncState('ok', 'Son sinxron: ' + now());
+        if(!silent) toast('Sheets-dən məlumatlar yükləndi! ✅','ok');
+        
+        // Səhifəni yenilə əgər lazımdırsa
+        if(activePage && CU){
+          go(activePage);
+        }
+      } else {
+        setSyncState('er','Xəta: ' + (result.msg||result.error||''));
+        if(!silent) toast('Yükləmə xətası: ' + (result.msg||''),'er');
+      }
+    },
+    function(err){
+      setSyncState('er','Bağlantı xətası');
+      if(!silent) toast('Bağlantı xətası: ' + err.message,'er');
+    }
+  );
+}
+
 function syncToSheets(silent){
   if(silent===undefined) silent=false;
   const url = getSheetsUrl();
@@ -560,7 +624,8 @@ function renderSyncBar(){
   <span class="syncTxt" id="syncTxt">${url?'Google Sheets bağlıdır':'Google Sheets bağlanmayıb'}</span>
   <a id="syncSheetLink" href="#" target="_blank" class="syncUrl" style="${url?'':'display:none'}">📊 Cədvəli Aç</a>
   <button class="btn bGhost bSm" onclick="openSheetsSetup()" style="padding:5px 10px">⚙️ Qurğu</button>
-  <button class="btn bSuccess bSm" onclick="syncToSheets()" id="syncBtn" style="padding:5px 10px">🔄 Sinxronlaşdır</button>
+  <button class="btn bSuccess bSm" onclick="syncFromSheets()" style="padding:5px 10px">⬇️ Yüklə</button>
+  <button class="btn bSuccess bSm" onclick="syncToSheets()" id="syncBtn" style="padding:5px 10px">🔄 Göndər</button>
 </div>`;
 }
 
@@ -572,7 +637,19 @@ var CU = null;
 function doLogin(){
   const u=g('liU').value.trim(), p=g('liP').value;
   if(!u||!p){showAuthErr('Login və şifrə daxil edin.');return;}
-  const user=DB.users.find(x=>x.login===u&&x.pass===p);
+  
+  // Əvvəlcə localStorage-dən yoxla
+  let user=DB.users.find(x=>x.login===u&&x.pass===p);
+  
+  // Tapılmadısa, Sheets-dən yüklə və bir daha yoxla
+  if(!user && getSheetsUrl()){
+    showAuthErr('İstifadəçi axtarılır...');
+    // Sheets-dən yüklə (sinxron olaraq çətindir, ona görə bildiriş göstər)
+    syncFromSheets(true);
+    // Bir daha yoxla
+    user = DB.users.find(x=>x.login===u&&x.pass===p);
+  }
+  
   if(!user){showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');return;}
   g('authErr').style.display='none';
   CU=user;
@@ -774,7 +851,8 @@ ${renderSyncBar()}
         <span style="font-size:13px">${name}</span>
         <span class="badge bProg">${cnt} sətir</span>
       </div>`).join('')}
-    <button class="btn bSuccess bFull" onclick="syncToSheets()" style="margin-top:14px">🔄 İndi Sinxronlaşdır</button>
+    <button class="btn bSuccess bFull" onclick="syncFromSheets()" style="margin-top:14px">⬇️ Sheets-dən Yüklə</button>
+    <button class="btn bPrimary bFull" onclick="syncToSheets()" style="margin-top:8px">🔄 Sheets-ə Göndər</button>
   </div>
 </div>`);
   updateSyncBar();
@@ -788,7 +866,8 @@ function pgDash(){
   const total=DB.requests.length, pend=DB.requests.filter(r=>r.status==='pending_approval').length,
         inprog=DB.requests.filter(r=>r.status==='inprog').length, hired=DB.evals.filter(e=>e.hired).length;
   updatePendBadge();
-  g('tbActs').innerHTML=`<button class="btn bSuccess bSm" onclick="syncToSheets(false)">🔄 Sheets Sinxron</button>`;
+  g('tbActs').innerHTML=`<button class="btn bSuccess bSm" onclick="syncFromSheets()">⬇️ Yüklə</button>
+    <button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="margin-left:4px">🔄 Göndər</button>`;
   setMC(`
 ${renderSyncBar()}
 <div class="statsGrid">
@@ -843,7 +922,8 @@ function pgLogs(){
 // ═══════════════════════════════════════════════════════════
 function pgUsers(){
   setTitle('İstifadəçilər');
-  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openAddUser()">➕ İstifadəçi Əlavə Et</button>`;
+  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openAddUser()">➕ İstifadəçi Əlavə Et</button>
+    <button class="btn bSuccess bSm" onclick="syncFromSheets()" style="margin-left:8px">⬇️ Yüklə</button>`;
   const us=DB.users.filter(u=>u.role!=='admin');
   setMC(`<div class="card">
     <div class="cTitle">👥 İstifadəçilər (${us.length})</div>
@@ -1008,7 +1088,7 @@ ${DB.chains.map(cat=>`<div class="card" style="margin-bottom:14px">
     <div class="chainArr ${cat.steps.length>0?'chainArrD':''}"></div>
     <div class="chainStep"><div class="chainCirc" style="background:rgba(124,109,250,.15);border-color:var(--acc);color:var(--acc2)">🎯</div><div class="chainLbl">Recruiter</div></div>
   </div>
-</div>`).join('')}`);
+</div>`).join('')}`;
 }
 
 let _editCatId=null;
@@ -1727,7 +1807,8 @@ function pgReports(){
   setTitle('Hesabatlar');
   g('tbActs').innerHTML=`
     <button class="btn bSuccess bSm" onclick="exportExcel()">📥 Excel</button>
-    <button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="margin-left:4px">🔄 Sheets</button>`;
+    <button class="btn bSuccess bSm" onclick="syncFromSheets()" style="margin-left:4px">⬇️ Yüklə</button>
+    <button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="margin-left:4px">🔄 Göndər</button>`;
   setMC(`
 ${renderSyncBar()}
 <div class="statsGrid">
