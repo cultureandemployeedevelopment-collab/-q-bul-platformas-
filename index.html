@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GHG — İşə Qəbul Platforması</title>
+<link rel="icon" href="data:,">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1088,7 +1089,7 @@ ${DB.chains.map(cat=>`<div class="card" style="margin-bottom:14px">
     <div class="chainArr ${cat.steps.length>0?'chainArrD':''}"></div>
     <div class="chainStep"><div class="chainCirc" style="background:rgba(124,109,250,.15);border-color:var(--acc);color:var(--acc2)">🎯</div><div class="chainLbl">Recruiter</div></div>
   </div>
-</div>`).join('')}`;
+</div>`).join('')}`);
 }
 
 let _editCatId=null;
