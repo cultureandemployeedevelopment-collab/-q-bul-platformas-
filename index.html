@@ -397,7 +397,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzYw1u-6GwBSUkPAmUzAaxGm97SHHBv92FZ1CYEeH96mVzyR51TkkHQuOoHuiSB1nFT/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycby-K7kD9maDFiLgl2LQsUbvXaijLyrcwOqNE-m2CmLkZt4TaY_H8-kqZR83T15WbEkj/exec';
 const SK = 'gha_v13'; // localStorage key for DB cache
 // Köhnə cache-dən yüklə
 function loadFromOldCache(){
@@ -590,8 +590,12 @@ function loadFromSheets(onDone, onError){
   jsonpCall(url, {action:'getAll', data:{}},
     function(res){
       if(res && res.ok){
-        if(res.users && res.users.length > 0)
-          DB.users = [...DB.users.filter(u=>u.role==='admin'), ...res.users.filter(u=>u.role!=='admin')];
+        if(res.users && res.users.length >= 0){
+          const normUsers = res.users.filter(u=>u.role!=='admin').map(function(u){
+            return Object.assign({}, u, {login:String(u.login||'').trim(), pass:String(u.pass||'').trim()});
+          });
+          DB.users = [...DB.users.filter(u=>u.role==='admin'), ...normUsers];
+        }
         if(res.requests) DB.requests = res.requests;
         if(res.evals)    DB.evals    = res.evals;
         if(res.chains)   DB.chains   = res.chains;
@@ -961,7 +965,7 @@ function doLogin(){
   }
 
   // 1. Local cache-dən yoxla
-  const localUser = DB.users.find(x=>x.login===u && x.pass===p);
+  const localUser = DB.users.find(x=>String(x.login).trim()===String(u).trim() && String(x.pass).trim()===String(p).trim());
   if(localUser){ enterApp(localUser); return; }
 
   const url = getSheetsUrl();
@@ -978,7 +982,15 @@ function doLogin(){
       if(res && res.ok && Array.isArray(res.users) && res.users.length >= 0){
         // Uğurlu — istifadəçiləri yüklə
         const admins = DB.users.filter(x=>x.role==='admin');
-        DB.users    = [...admins, ...res.users.filter(x=>x.role!=='admin')];
+        // Sheets-dən gələn number dəyərləri string-ə çevir
+        const sheetsUsers = res.users.filter(x=>x.role!=='admin').map(function(u){
+          return Object.assign({}, u, {
+            login: String(u.login || '').trim(),
+            pass:  String(u.pass  || '').trim(),
+            id:    String(u.id    || '')
+          });
+        });
+        DB.users    = [...admins, ...sheetsUsers];
         DB.requests = res.requests || DB.requests;
         DB.evals    = res.evals    || DB.evals;
         DB.chains   = res.chains   || DB.chains;
@@ -986,7 +998,7 @@ function doLogin(){
         DB_LOADED = true;
         saveLocal();
 
-        const found = DB.users.find(x=>x.login===u && x.pass===p);
+        const found = DB.users.find(x=>String(x.login).trim()===String(u).trim() && String(x.pass).trim()===String(p).trim());
         if(found){ enterApp(found); return; }
 
         const cnt = DB.users.filter(x=>x.role!=='admin').length;
