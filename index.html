@@ -365,13 +365,41 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 <!-- Hidden iframe for no-cors POST -->
 <iframe id="syncFrame" name="syncFrame" style="display:none"></iframe>
 
+
+<!-- URL SETTINGS MODAL -->
+<div class="overlay hidden" id="mUrlSet">
+  <div class="modal" style="max-width:520px">
+    <div class="mHead">
+      <div class="mTitle">⚙️ Google Sheets URL</div>
+      <button class="btn bGhost bSm" onclick="cm('mUrlSet')">✕</button>
+    </div>
+    <div class="mBody">
+      <div class="alert aWarn">
+        Yeni deploy etdikdən sonra URL-i buraya yapışdırın.
+      </div>
+      <div class="fGroup">
+        <label>Apps Script URL *</label>
+        <input id="urlInput" type="url" 
+          placeholder="https://script.google.com/macros/s/.../exec"
+          style="font-family:var(--mono);font-size:12px">
+      </div>
+      <div id="urlTestResult" style="margin-top:8px;font-size:13px;min-height:20px"></div>
+    </div>
+    <div class="mFoot">
+      <button class="btn bGhost" onclick="cm('mUrlSet')">Bağla</button>
+      <button class="btn bInfo" onclick="testNewUrl()">🔌 Test et</button>
+      <button class="btn bSuccess" onclick="saveNewUrl()">✓ Yadda saxla</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxnJVnWklef6QFUDrY82B2l7cQKVv1y9hUEHfreLmcDR1ShNuc4jzkb5myhLET-0m0J/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyR1A-vgJpKU9S-X7IWPE3rnYRs2ZBoH4ggT1tShr455u5ccVAvb3KiwRxIdMXh76vH/exec';
 const SK = 'gha_v13'; // localStorage key for DB cache
 // Köhnə cache-dən yüklə
 function loadFromOldCache(){
@@ -604,6 +632,54 @@ function sheetsCall(action, params, silent){
   );
 }
 
+
+
+// ── URL Settings ─────────────────────────────────────────────────
+function openUrlSettings(){
+  const el = document.getElementById('urlInput');
+  if(el) el.value = getSheetsUrl() || '';
+  const res = document.getElementById('urlTestResult');
+  if(res) res.innerHTML = '';
+  document.getElementById('mUrlSet').classList.remove('hidden');
+}
+
+function testNewUrl(){
+  const url = document.getElementById('urlInput').value.trim();
+  const res = document.getElementById('urlTestResult');
+  if(!url){ res.innerHTML = '<span style="color:var(--red)">URL daxil edin</span>'; return; }
+  res.innerHTML = '<span style="color:var(--yellow)">⏳ Test edilir...</span>';
+  const cb = 'ping_' + Date.now();
+  const s = document.createElement('script');
+  s.src = url + '?callback=' + cb + '&action=ping&data=%7B%7D';
+  const t = setTimeout(function(){
+    res.innerHTML = '<span style="color:var(--red)">❌ Cavab gəlmədi (timeout). URL-i yoxlayın.</span>';
+    delete window[cb]; if(s.parentNode) s.remove();
+  }, 12000);
+  window[cb] = function(r){
+    clearTimeout(t); delete window[cb]; if(s.parentNode) s.remove();
+    if(r && r.ok){
+      res.innerHTML = '<span style="color:var(--green)">✅ Bağlantı uğurlu! ' + (r.msg||'') + '</span>';
+    } else {
+      res.innerHTML = '<span style="color:var(--red)">❌ Xəta: ' + JSON.stringify(r) + '</span>';
+    }
+  };
+  s.onerror = function(){ clearTimeout(t); res.innerHTML = '<span style="color:var(--red)">❌ Script yüklənmədi</span>'; };
+  document.head.appendChild(s);
+}
+
+function saveNewUrl(){
+  const url = document.getElementById('urlInput').value.trim();
+  if(!url || !url.includes('script.google.com')){ 
+    document.getElementById('urlTestResult').innerHTML = '<span style="color:var(--red)">Düzgün URL daxil edin</span>';
+    return; 
+  }
+  setSheetsUrl(url);
+  document.getElementById('mUrlSet').classList.add('hidden');
+  toast('URL yadda saxlandı ✅', 'ok');
+  setSyncState('ok', 'Yeni URL quraşdırıldı');
+  // Dərhal yüklə
+  loadFromSheets(function(){ refreshCurrentPage(); toast('Data yükləndi ✅','ok'); }, function(){});
+}
 
 function uid(){  return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function now(){  return new Date().toLocaleString('az-AZ'); }
