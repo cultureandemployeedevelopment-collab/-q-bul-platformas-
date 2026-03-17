@@ -468,39 +468,48 @@ function apiCall(action, table, data, callback, errorCallback) {
     if (errorCallback) errorCallback('URL not set');
     return;
   }
-  
+
   const payload = {
     action: action,
     table: table || '',
     data: data || {}
   };
-  
-  // Use POST for all requests to avoid URL length limits
-  // Content-Type must be 'text/plain' (a "simple" CORS type) so the browser
-  // does NOT send an OPTIONS preflight that Google Apps Script cannot answer.
-  // GAS reads the body via e.postData.contents and JSON.parse()s it fine.
+
+  // Read-only operations use JSONP directly to avoid the GAS redirect chain
+  // (POST → 302 → script.googleusercontent.com) which causes ERR_CONNECTION_CLOSED.
+  if (action === 'getAll' || action === 'ping') {
+    jsonpCall(url, payload, callback, errorCallback);
+    return;
+  }
+
+  // Write operations: POST with redirect:'manual' so the browser never follows
+  // the GAS 302 redirect to script.googleusercontent.com (which drops the
+  // connection and causes ERR_CONNECTION_CLOSED).
+  // NOTE: GAS executes the script first, then issues the redirect with the
+  // response body encoded in the redirect URL parameters.  An opaque redirect
+  // therefore confirms that the script ran.  The actual {ok:true/false} result
+  // is not readable in this path; if exact server confirmation is required the
+  // JSONP fallback below will be used on any hard failure instead.
   fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-    body: JSON.stringify(payload)
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload),
+    redirect: 'manual'
   })
   .then(response => {
+    if (response.type === 'opaqueredirect') {
+      // GAS executed and redirected — treat as success.
+      if (callback) callback({ ok: true });
+      return; // handled; don't proceed to json() parse below
+    }
     if (!response.ok) throw new Error('HTTP ' + response.status);
-    return response.json();
-  })
-  .then(result => {
-    if (callback) callback(result);
+    // When CORS is available the response is readable; parse it directly.
+    return response.json().then(result => { if (callback) callback(result); });
   })
   .catch(err => {
     console.error('API Error:', err);
-    // Fallback to JSONP for GET requests
-    if (action === 'getAll' || action === 'ping') {
-      jsonpCall(url, payload, callback, errorCallback);
-    } else {
-      if (errorCallback) errorCallback(err.message);
-    }
+    // Fallback to JSONP for all operations
+    jsonpCall(url, payload, callback, errorCallback);
   });
 }
 
