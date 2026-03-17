@@ -371,7 +371,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbw9aliOc6TMeZnXTKQh6HxM8vtGUGIm-ILgH1GcofJjGAtJqM-9VcZ6xudJd77WOeuv/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxAag1uP9LJCLCP_CgZyw0rYBNVWhEIyVnXdU4kmUXO5EKDeaykk6U0YUCfr6vseCbg/exec';
 const SK = 'gha_v8';
 const SHEETS_URL_KEY = 'gha_sheets_url';
 
@@ -421,14 +421,85 @@ function save(table, item, operation){
   if(!table) return;
   const url = getSheetsUrl();
   if(!url) return;
-  if(operation==='add'){
-    sheetsCall('addRow', {action:'addRow', table:table, data:item}, true);
-  } else if(operation==='update'){
-    // updateRow üçün id və row ayrıca göndər
-    sheetsCall('updateRow', {action:'updateRow', table:table, data:{id:item.id, row:item}}, true);
-  } else if(operation==='delete'){
+
+  if(operation==='delete'){
     sheetsCall('deleteRow', {action:'deleteRow', table:table, data:{id:item}}, true);
+    return;
   }
+
+  // add və update üçün compact data hazırla
+  const compact = makeCompact(table, item);
+  if(operation==='add'){
+    sheetsCall('addRow', {action:'addRow', table:table, data:compact}, true);
+  } else if(operation==='update'){
+    sheetsCall('updateRow', {action:'updateRow', table:table, data:{id:item.id, row:compact}}, true);
+  }
+}
+
+// Hər cədvəl üçün yalnız lazımi sahələri götür (URL limiti üçün)
+function makeCompact(table, item){
+  if(!item) return {};
+  if(table === 'users'){
+    return {
+      id:item.id, name:item.name, login:item.login, pass:item.pass,
+      role:item.role, position:item.position||'', email:item.email||'',
+      bu:item.bu||'', department:item.department||'', struct:item.struct||''
+    };
+  }
+  if(table === 'requests'){
+    return {
+      id:item.id, reqId:item.reqId, positionTitle:item.positionTitle,
+      department:item.department||'', grade:item.grade||'',
+      salary:item.salary||'', startDate:item.startDate||'',
+      reason:(item.reason||'').substring(0,300),
+      jobDesc:(item.jobDesc||'').substring(0,800),
+      langs:item.langs||[], langOther:item.langOther||'',
+      comp:item.comp||[], compOther:item.compOther||'',
+      chainCatId:item.chainCatId||'',
+      createdByName:item.createdByName||'', createdById:item.createdById||'',
+      createdAt:item.createdAt||'', createdAtMs:item.createdAtMs||0,
+      status:item.status||'', rejectedBy:item.rejectedBy||'',
+      rejectedAt:item.rejectedAt||'', rejectReason:(item.rejectReason||'').substring(0,200),
+      approvals:(item.approvals||[]).slice(0,3),
+      candidates:(item.candidates||[]).slice(0,50)
+    };
+  }
+  if(table === 'evals'){
+    return {
+      id:item.id, requestId:item.requestId,
+      candidateName:item.candidateName, interviewDate:item.interviewDate,
+      interviewerName:item.interviewerName||'', interviewerPosition:item.interviewerPosition||'',
+      applyPosition:item.applyPosition||'',
+      ratings:item.ratings||[], salaryExp:item.salaryExp||'', availDate:item.availDate||'',
+      recs:(item.recs||'').substring(0,300),
+      recommendation:item.recommendation||null,
+      additionalComments:(item.additionalComments||'').substring(0,300),
+      recruiterFilledAt:item.recruiterFilledAt||'',
+      lineManagerId:item.lineManagerId||null,
+      lmRatings:item.lmRatings||[], lmSalaryExp:item.lmSalaryExp||'',
+      lmRecs:(item.lmRecs||'').substring(0,300),
+      lmRecommendation:item.lmRecommendation||null,
+      lmAdditionalComments:(item.lmAdditionalComments||'').substring(0,300),
+      lmFilledAt:item.lmFilledAt||'', lmFormFilled:item.lmFormFilled||false,
+      recruiterApproved:item.recruiterApproved||false,
+      recruiterApprovedAt:item.recruiterApprovedAt||'',
+      lineManagerApproved:item.lineManagerApproved||false,
+      lineManagerApprovedAt:item.lineManagerApprovedAt||'',
+      ceoAssigned:item.ceoAssigned||null,
+      ceoApproved:item.ceoApproved||false, ceoApprovedAt:item.ceoApprovedAt||'',
+      hired:item.hired||false, hiredAt:item.hiredAt||'', hiredBy:item.hiredBy||'',
+      createdByName:item.createdByName||'', createdAt:item.createdAt||''
+    };
+  }
+  if(table === 'chains'){
+    return {
+      id:item.id, name:item.name, steps:item.steps||[]
+    };
+  }
+  if(table === 'logs'){
+    return {id:item.id, txt:(item.txt||'').substring(0,200), type:item.type||'B', ts:item.ts||''};
+  }
+  return item;
 }
 
 // Sheets-dən yalnız istifadəçiləri yüklə (giriş üçün — sürətli)
@@ -599,29 +670,18 @@ function jsonpCall(url, params, onSuccess, onError, timeout){
   const cbName = 'ghg_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
 
   // Data-nı hazırla
-  let dataObj = params.data !== undefined ? params.data : {};
-  // Böyük mətn sahələrini kəs (URL limiti üçün)
-  if(dataObj && typeof dataObj === 'object' && !Array.isArray(dataObj)){
-    dataObj = trimLargeFields(dataObj);
-  }
+  const dataObj = params.data !== undefined ? params.data : {};
   const dataStr = JSON.stringify(dataObj);
 
   // URL yığ
-  let fullUrl = url
+  const fullUrl = url
     + '?callback=' + encodeURIComponent(cbName)
     + '&action='   + encodeURIComponent(params.action || '')
     + '&table='    + encodeURIComponent(params.table  || '')
     + '&data='     + encodeURIComponent(dataStr);
 
-  // URL 8000 simvoldan uzundursa — data-nı daha da kəs
-  if(fullUrl.length > 8000){
-    const shorter = JSON.stringify(trimLargeFields(dataObj, 200));
-    fullUrl = url
-      + '?callback=' + encodeURIComponent(cbName)
-      + '&action='   + encodeURIComponent(params.action || '')
-      + '&table='    + encodeURIComponent(params.table  || '')
-      + '&data='     + encodeURIComponent(shorter);
-  }
+  // Debug: URL uzunluğunu log et
+  console.log('[JSONP]', params.action, params.table||'', 'URL len:', fullUrl.length);
 
   const script = document.createElement('script');
   script.src = fullUrl;
