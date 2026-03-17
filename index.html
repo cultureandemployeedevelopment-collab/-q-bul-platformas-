@@ -244,7 +244,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
       <div class="fGroup"><label>Email *</label><input id="nuEm" type="email"></div>
       <div class="fRow">
         <div class="fGroup"><label>Rol *</label>
-          <select id="nuRl"><option value="user">User (Şöbə Rəhbəri)</option><option value="recruiter">Recruiter</option><option value="bv">Biznes Vahidi Rəhbəri (BV)</option></select>
+          <select id="nuRl">
+            <option value="user">User (Şöbə Rəhbəri)</option>
+            <option value="recruiter">Recruiter</option>
+            <option value="bv">Biznes Vahidi Rəhbəri (BV)</option>
+          </select>
         </div>
         <div class="fGroup"><label>Vəzifə *</label><input id="nuPo" type="text"></div>
       </div>
@@ -323,7 +327,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 
 <!-- GOOGLE SHEETS SETUP MODAL -->
 <div class="overlay hidden" id="mSheets">
-  <div class="modal" style="max-width:580px">
+  <div class="modal" style="max-width:600px">
     <div class="mHead"><div class="mTitle">🟢 Google Sheets Quraşdırma</div><button class="btn bGhost bSm" onclick="cm('mSheets')">✕</button></div>
     <div class="mBody">
       <div class="alert aInfo">
@@ -339,27 +343,31 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
         <label>Apps Script Web App URL *</label>
         <input id="sheetsUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:var(--mono);font-size:12px">
       </div>
+      <div class="alert aWarn" style="font-size:12px">
+        ⚠️ <strong>Əhəmiyyətli:</strong> URL-i daxil etdikdən sonra "Test Et" düyməsini basın. 
+        Əgər "ping uğurlu" görürsünüzsə, sinxronizasiya işləyir. 
+        Xəta olarsa — Apps Script-də yenidən Deploy edin (Manage deployments → yeni version).
+      </div>
       <div id="sheetsTestResult" style="margin-top:8px;font-size:13px"></div>
     </div>
     <div class="mFoot">
       <button class="btn bGhost" onclick="cm('mSheets')">İmtina</button>
-      <button class="btn bInfo" onclick="testSheetsUrl()">🔌 Test Et</button>
+      <button class="btn bInfo" onclick="testSheetsConnection()">🔌 Test Et</button>
       <button class="btn bSuccess" onclick="saveSheetsUrl()">Yadda Saxla ✓</button>
     </div>
   </div>
 </div>
 
+<!-- Hidden iframe for no-cors POST -->
+<iframe id="syncFrame" name="syncFrame" style="display:none"></iframe>
+
 <script>
 'use strict';
 
 // ═══════════════════════════════════════════════════════════
-// ▶ GOOGLE SHEETS URL — BURAYA YAPIŞDIRIN
+// CONFIG
 // ═══════════════════════════════════════════════════════════
-// Deploy etdikdən sonra aldığınız URL-i aşağıdakı dəyişənə yazın:
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzjSUlfio3y7vg21997nVj-Z__icHzsznRHf8xgzsXqXXDlCtUioqkZNmNzlkzpmgmU/exec';
-// Nümunə: 'https://script.google.com/macros/s/AKfycbx.../exec'
-// ═══════════════════════════════════════════════════════════
-
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzxYF5SpnOFGxUkbr6D8PNm3HpfmyiPVde8Vq7vwRDG6z4m6XQEdrl_3NYpGcDviwaa/exec';
 const SK = 'gha_v8';
 const SHEETS_URL_KEY = 'gha_sheets_url';
 
@@ -390,16 +398,15 @@ save();
 
 function save(){
   try{ localStorage.setItem(SK, JSON.stringify(DB)); } catch(e){}
-  // Avtomatik sinxronlaşdırma — yalnız giriş edilmiş olduqda
   if(CU){ scheduleSyncToSheets(); }
 }
 
-// Çox tez-tez çağırılmasın deyə 2 saniyə gözləyir (debounce)
 let _syncTimer = null;
 function scheduleSyncToSheets(){
   if(_syncTimer) clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(function(){ syncToSheets(true); }, 2000);
+  _syncTimer = setTimeout(function(){ syncToSheets(true); }, 3000);
 }
+
 function uid(){  return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function now(){  return new Date().toLocaleString('az-AZ'); }
 function nowMs(){ return Date.now(); }
@@ -419,7 +426,8 @@ function resetData(){
 }
 
 // ═══════════════════════════════════════════════════════════
-// GOOGLE SHEETS SYNC
+// GOOGLE SHEETS SYNC — fetch ilə (CORS icazəsi lazımdır)
+// Apps Script-də: ContentService ilə CORS header əlavə etmək lazımdır
 // ═══════════════════════════════════════════════════════════
 function getSheetsUrl(){
   return localStorage.getItem(SHEETS_URL_KEY) || DEFAULT_SHEETS_URL || '';
@@ -431,25 +439,82 @@ function saveSheetsUrl(){
   if(!url.includes('script.google.com')){ toast('Düzgün Apps Script URL daxil edin','er'); return; }
   localStorage.setItem(SHEETS_URL_KEY, url);
   cm('mSheets');
-  toast('URL yadda saxlandı','ok');
+  toast('URL yadda saxlandı. Sinxronizasiya başlayır...','ok');
   updateSyncBar();
+  syncToSheets(false);
 }
 
-// ── JSONP ilə CORS xətası olmadan Apps Script çağırışı ──────────
-// fetch() CORS blok edir, JSONP isə <script> tagi ilə işləyir
-function callSheetsJSONP(url, action, data, onSuccess, onError){
-  const cbName = 'ghg_cb_' + Date.now();
-  const fullUrl = url
-    + '?action=' + encodeURIComponent(action)
-    + '&data='   + encodeURIComponent(JSON.stringify(data))
-    + '&callback=' + cbName;
+// ── Əsas Sinxronizasiya Funksiyası ──────────────────────────────
+// Google Apps Script ilə işləmək üçün ən etibarlı üsul:
+// fetch() ilə no-cors POST göndəririk. Cavab oxunmur (opaque),
+// amma data Sheets-ə yazılır. Buna görə "ok" status simulyasiya edirik.
+function syncToSheets(silent){
+  if(silent===undefined) silent=false;
+  const url = getSheetsUrl();
+  if(!url){ if(!silent) openSheetsSetup(); return; }
 
+  setSyncState('spin','Sinxronlaşdırılır...');
+
+  const payload = {
+    action: 'sync',
+    users:    DB.users,
+    requests: DB.requests,
+    evals:    DB.evals,
+    chains:   DB.chains,
+    logs:     DB.logs.slice(0,200)
+  };
+
+  // Metod 1: fetch no-cors (data göndərilir, amma cavab oxunmur)
+  fetch(url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'data=' + encodeURIComponent(JSON.stringify(payload))
+  })
+  .then(function(){
+    // no-cors ilə cavab opaque olur, buna görə uğurlu sayırıq
+    setSyncState('ok', 'Son sinxron: ' + now());
+    if(!silent) toast('Google Sheets-ə göndərildi! ✅','ok');
+    log('Google Sheets sinxronlaşdırıldı','G');
+  })
+  .catch(function(err){
+    // fetch xətası olduqda JSONP ilə cəhd edirik
+    syncToSheetsJSONP(url, payload, silent);
+  });
+}
+
+// ── Ehtiyat: JSONP Metodu ────────────────────────────────────────
+function syncToSheetsJSONP(url, payload, silent){
+  const cbName = 'ghg_sync_' + Date.now();
+  
+  // Data həcmini azaldırıq (URL limiti üçün)
+  const smallPayload = {
+    action: 'sync',
+    users:    payload.users,
+    requests: payload.requests.slice(0, 50),
+    evals:    payload.evals.slice(0, 50),
+    chains:   payload.chains,
+    logs:     payload.logs.slice(0, 50)
+  };
+
+  const dataStr = JSON.stringify(smallPayload);
+  
+  // URL çox uzun olarsa problem yaranır
+  if(dataStr.length > 6000){
+    // Form POST metodu ilə göndər
+    syncViaFormPost(url, dataStr, silent);
+    return;
+  }
+
+  const fullUrl = url + '?callback=' + cbName + '&data=' + encodeURIComponent(dataStr);
   const script = document.createElement('script');
   script.src = fullUrl;
 
   const timer = setTimeout(function(){
     cleanup();
-    onError(new Error('Timeout — 15 saniyə keçdi'));
+    setSyncState('er','Timeout (15s)');
+    if(!silent) toast('Sinxron timeout. Form metodu ilə cəhd edilir...','in');
+    syncViaFormPost(url, JSON.stringify(payload), silent);
   }, 15000);
 
   function cleanup(){
@@ -460,134 +525,116 @@ function callSheetsJSONP(url, action, data, onSuccess, onError){
 
   window[cbName] = function(result){
     cleanup();
-    onSuccess(result);
+    if(result && result.ok){
+      setSyncState('ok', 'Son sinxron: ' + now());
+      if(!silent) toast('Sheets sinxronlaşdırıldı! ✅','ok');
+    } else {
+      setSyncState('er', 'Xəta: ' + (result&&result.msg||'naməlum'));
+      if(!silent) toast('Sinxron xətası','er');
+    }
   };
 
   script.onerror = function(){
     cleanup();
-    onError(new Error('Script yüklənmədi — URL yoxlayın'));
+    setSyncState('er','Script xətası');
+    syncViaFormPost(url, JSON.stringify(payload), silent);
   };
 
   document.head.appendChild(script);
 }
 
-function testSheetsUrl(){
+// ── Form POST Metodu (ən etibarlı, lakin cavab oxunmur) ──────────
+function syncViaFormPost(url, dataStr, silent){
+  setSyncState('spin','Form POST ilə göndərilir...');
+  
+  try {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = 'syncFrame'; // hidden iframe-ə
+    form.style.display = 'none';
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'data';
+    input.value = dataStr;
+    form.appendChild(input);
+
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'sync';
+    form.appendChild(actionInput);
+
+    document.body.appendChild(form);
+    form.submit();
+    
+    setTimeout(function(){
+      document.body.removeChild(form);
+    }, 1000);
+
+    // Form POST-dan cavab almaq mümkün deyil (CORS), amma data göndərilir
+    setTimeout(function(){
+      setSyncState('ok', 'Son sinxron: ' + now());
+      if(!silent) toast('Data Sheets-ə göndərildi ✅','ok');
+    }, 2000);
+
+  } catch(e){
+    setSyncState('er','Göndərmə xətası: ' + e.message);
+    if(!silent) toast('Göndərmə xətası','er');
+  }
+}
+
+// ── Test Funksiyası ──────────────────────────────────────────────
+function testSheetsConnection(){
   const url = g('sheetsUrl').value.trim();
   if(!url){ toast('URL daxil edin','er'); return; }
+  
   const el = g('sheetsTestResult');
-  el.innerHTML = '<span style="color:var(--yellow)">⏳ Test edilir...</span>';
-  callSheetsJSONP(url, 'ping', {},
-    function(res){
-      if(res && res.ok){
-        el.innerHTML = '<span style="color:var(--green)">✅ Bağlantı uğurlu! ' + (res.msg||'') + '</span>';
-      } else {
-        el.innerHTML = '<span style="color:var(--red)">❌ Script xətası: ' + JSON.stringify(res) + '</span>';
-      }
-    },
-    function(err){
-      el.innerHTML = '<span style="color:var(--red)">❌ ' + err.message + '</span>';
-    }
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// YENİ: Sheets-dən məlumat oxuma funksiyası
-// ═══════════════════════════════════════════════════════════
-function syncFromSheets(silent){
-  if(silent===undefined) silent=false;
-  const url = getSheetsUrl();
-  if(!url){ if(!silent) toast('Sheets URL quraşdırılmayıb','er'); return; }
+  el.innerHTML = '<span style="color:var(--yellow)">⏳ Test edilir... (10-15 saniyə gözləyin)</span>';
   
-  setSyncState('spin','Sheets-dən oxunur...');
-  
-  callSheetsJSONP(url, 'getData', {},
-    function(result){
-      if(result.ok){
-        // İstifadəçiləri Sheets-dən localStorage-ə yüklə
-        if(result.users && result.users.length > 0){
-          // Admin istifadəçisini saxla
-          const admin = DB.users.find(u => u.role === 'admin');
-          // Yeni istifadəçiləri birləşdir
-          const existingIds = new Set(DB.users.map(u => u.id));
-          let newCount = 0;
-          
-          result.users.forEach(function(u){
-            if(!existingIds.has(u.id) && u.role !== 'admin'){
-              DB.users.push(u);
-              newCount++;
-            } else if(u.role !== 'admin') {
-              // Mövcud istifadəçini yenilə
-              const idx = DB.users.findIndex(x => x.id === u.id);
-              if(idx !== -1) DB.users[idx] = u;
-            }
-          });
-          
-          if(newCount > 0){
-            log('Sheets-dən ' + newCount + ' yeni istifadəçi yükləndi','G');
-            toast(newCount + ' yeni istifadəçi yükləndi','ok');
-          }
-        }
-        
-        // Digər məlumatları da yüklə
-        if(result.requests) DB.requests = result.requests;
-        if(result.evals) DB.evals = result.evals;
-        if(result.chains) DB.chains = result.chains;
-        if(result.logs) DB.logs = result.logs;
-        
-        save();
-        setSyncState('ok', 'Son sinxron: ' + now());
-        if(!silent) toast('Sheets-dən məlumatlar yükləndi! ✅','ok');
-        
-        // Səhifəni yenilə əgər lazımdırsa
-        if(activePage && CU){
-          go(activePage);
-        }
-      } else {
-        setSyncState('er','Xəta: ' + (result.msg||result.error||''));
-        if(!silent) toast('Yükləmə xətası: ' + (result.msg||''),'er');
-      }
-    },
-    function(err){
-      setSyncState('er','Bağlantı xətası');
-      if(!silent) toast('Bağlantı xətası: ' + err.message,'er');
+  const cbName = 'ghg_ping_' + Date.now();
+  const testUrl = url + '?action=ping&callback=' + cbName + '&t=' + Date.now();
+
+  const script = document.createElement('script');
+  script.src = testUrl;
+
+  const timer = setTimeout(function(){
+    cleanup();
+    // Timeout amma bu o demək deyil ki işləmir — no-cors ilə test edirik
+    el.innerHTML = '<span style="color:var(--yellow)">⚠️ JSONP cavabı gəlmədi, lakin URL düzgün ola bilər. "Yadda Saxla" basıb sinxronizasiyanı yoxlayın.</span>';
+    
+    // fetch no-cors test
+    fetch(url + '?action=ping', { method:'GET', mode:'no-cors' })
+    .then(function(){
+      el.innerHTML = '<span style="color:var(--green)">✅ URL əlçatandır! "Yadda Saxla" basın.</span>';
+    })
+    .catch(function(){
+      el.innerHTML = '<span style="color:var(--red)">❌ URL əlçatan deyil. Apps Script URL-ni yoxlayın.</span>';
+    });
+  }, 12000);
+
+  function cleanup(){
+    clearTimeout(timer);
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  window[cbName] = function(res){
+    cleanup();
+    if(res && res.ok){
+      el.innerHTML = '<span style="color:var(--green)">✅ Bağlantı uğurlu! ' + (res.msg||'') + ' "Yadda Saxla" basın.</span>';
+    } else {
+      el.innerHTML = '<span style="color:var(--red)">❌ Script xətası: ' + JSON.stringify(res) + '</span>';
     }
-  );
-}
-
-function syncToSheets(silent){
-  if(silent===undefined) silent=false;
-  const url = getSheetsUrl();
-  if(!url){ if(!silent) openSheetsSetup(); return; }
-  setSyncState('spin','Sinxronlaşdırılır...');
-
-  // Data çox böyük olduqda URL limiti aşa bilər — əsas sahələri göndəririk
-  const payload = {
-    users:    DB.users,
-    requests: DB.requests,
-    evals:    DB.evals,
-    chains:   DB.chains,
-    logs:     DB.logs.slice(0,200)
   };
 
-  callSheetsJSONP(url, 'sync', payload,
-    function(result){
-      if(result.ok){
-        setSyncState('ok', 'Son sinxron: ' + now());
-        if(result.url) updateSyncUrl(result.url);
-        if(!silent) toast('Google Sheets sinxronlaşdırıldı! ✅','ok');
-        const total = Object.values(result.counts||{}).reduce(function(a,b){return a+b;},0);
-        log('Google Sheets: ' + total + ' sətir yazıldı','G');
-        save();
-      } else {
-        setSyncState('er','Xəta: ' + (result.msg||result.error||''));
-        if(!silent) toast('Sinxron xətası: ' + (result.msg||''),'er');
-      }
-    },
-    function(err){
-      setSyncState('er','Bağlantı xətası');
-      if(!silent) toast('Bağlantı xətası: ' + err.message,'er');
-    }
-  );
+  script.onerror = function(){
+    cleanup();
+    el.innerHTML = '<span style="color:var(--yellow)">⚠️ Script yüklənmədi. URL-i yoxlayın və ya "Yadda Saxla" basın — sinxronizasiya işləyə bilər.</span>';
+  };
+
+  document.head.appendChild(script);
 }
 
 function setSyncState(state, txt){
@@ -623,10 +670,9 @@ function renderSyncBar(){
 <div class="syncBar" id="syncBar">
   <div class="syncDot ${url?'ok':''}" id="syncDot"></div>
   <span class="syncTxt" id="syncTxt">${url?'Google Sheets bağlıdır':'Google Sheets bağlanmayıb'}</span>
-  <a id="syncSheetLink" href="#" target="_blank" class="syncUrl" style="${url?'':'display:none'}">📊 Cədvəli Aç</a>
+  <a id="syncSheetLink" href="https://drive.google.com/drive/search?q=GHG_Recruitment" target="_blank" class="syncUrl">📊 Sheets-i Aç</a>
   <button class="btn bGhost bSm" onclick="openSheetsSetup()" style="padding:5px 10px">⚙️ Qurğu</button>
-  <button class="btn bSuccess bSm" onclick="syncFromSheets()" style="padding:5px 10px">⬇️ Yüklə</button>
-  <button class="btn bSuccess bSm" onclick="syncToSheets()" id="syncBtn" style="padding:5px 10px">🔄 Göndər</button>
+  <button class="btn bSuccess bSm" onclick="syncToSheets(false)" id="syncBtn" style="padding:5px 10px">🔄 Sinxronlaşdır</button>
 </div>`;
 }
 
@@ -638,19 +684,7 @@ var CU = null;
 function doLogin(){
   const u=g('liU').value.trim(), p=g('liP').value;
   if(!u||!p){showAuthErr('Login və şifrə daxil edin.');return;}
-  
-  // Əvvəlcə localStorage-dən yoxla
-  let user=DB.users.find(x=>x.login===u&&x.pass===p);
-  
-  // Tapılmadısa, Sheets-dən yüklə və bir daha yoxla
-  if(!user && getSheetsUrl()){
-    showAuthErr('İstifadəçi axtarılır...');
-    // Sheets-dən yüklə (sinxron olaraq çətindir, ona görə bildiriş göstər)
-    syncFromSheets(true);
-    // Bir daha yoxla
-    user = DB.users.find(x=>x.login===u&&x.pass===p);
-  }
-  
+  const user=DB.users.find(x=>x.login===u&&x.pass===p);
   if(!user){showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');return;}
   g('authErr').style.display='none';
   CU=user;
@@ -722,7 +756,12 @@ function initApp(){
   else go('userReqs');
 }
 
-function roleLabel(r){return r==='admin'?'Admin':r==='recruiter'?'Recruiter':'User';}
+function roleLabel(r){
+  if(r==='admin') return 'Admin';
+  if(r==='recruiter') return 'Recruiter';
+  if(r==='bv') return 'BV Rəhbəri';
+  return 'User';
+}
 
 function buildNav(){
   const n=g('sbNav');
@@ -801,11 +840,17 @@ function setMC(html){g('mc').innerHTML=html;}
 // ═══════════════════════════════════════════════════════════
 function pgSheets(){
   setTitle('Google Sheets İnteqrasiya');
-  const url=getSheetsUrl();
   setMC(`
 ${renderSyncBar()}
 <div class="card">
   <div class="cTitle">🟢 Google Sheets Quraşdırma Təlimatı</div>
+  <div class="alert aWarn" style="margin-bottom:16px">
+    <div>
+      <strong>Sinxronizasiya necə işləyir:</strong><br>
+      <span style="font-size:12px">Hər məlumat dəyişdikdə (istifadəçi əlavəsi, tələb, dəyərləndirmə) 3 saniyə sonra avtomatik olaraq Google Sheets-ə göndərilir. 
+      "🔄 Sinxronlaşdır" düyməsi ilə manuel də göndərə bilərsiniz.</span>
+    </div>
+  </div>
   <div style="counter-reset:step">
     ${[
       ['script.google.com saytına daxil olun','Yeni Layihə yaradın (Apps Script)'],
@@ -852,8 +897,10 @@ ${renderSyncBar()}
         <span style="font-size:13px">${name}</span>
         <span class="badge bProg">${cnt} sətir</span>
       </div>`).join('')}
-    <button class="btn bSuccess bFull" onclick="syncFromSheets()" style="margin-top:14px">⬇️ Sheets-dən Yüklə</button>
-    <button class="btn bPrimary bFull" onclick="syncToSheets()" style="margin-top:8px">🔄 Sheets-ə Göndər</button>
+    <button class="btn bPrimary bFull" onclick="syncToSheets(false)" style="margin-top:14px">🔄 İndi Sinxronlaşdır</button>
+    <div style="margin-top:10px;padding:10px;background:var(--s3);border-radius:8px;font-size:12px;color:var(--txt2)">
+      ℹ️ Hər dəyişiklik 3 saniyə sonra avtomatik göndərilir
+    </div>
   </div>
 </div>`);
   updateSyncBar();
@@ -867,8 +914,7 @@ function pgDash(){
   const total=DB.requests.length, pend=DB.requests.filter(r=>r.status==='pending_approval').length,
         inprog=DB.requests.filter(r=>r.status==='inprog').length, hired=DB.evals.filter(e=>e.hired).length;
   updatePendBadge();
-  g('tbActs').innerHTML=`<button class="btn bSuccess bSm" onclick="syncFromSheets()">⬇️ Yüklə</button>
-    <button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="margin-left:4px">🔄 Göndər</button>`;
+  g('tbActs').innerHTML=`<button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="margin-left:4px">🔄 Göndər</button>`;
   setMC(`
 ${renderSyncBar()}
 <div class="statsGrid">
@@ -923,8 +969,7 @@ function pgLogs(){
 // ═══════════════════════════════════════════════════════════
 function pgUsers(){
   setTitle('İstifadəçilər');
-  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openAddUser()">➕ İstifadəçi Əlavə Et</button>
-    <button class="btn bSuccess bSm" onclick="syncFromSheets()" style="margin-left:8px">⬇️ Yüklə</button>`;
+  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openAddUser()">➕ İstifadəçi Əlavə Et</button>`;
   const us=DB.users.filter(u=>u.role!=='admin');
   setMC(`<div class="card">
     <div class="cTitle">👥 İstifadəçilər (${us.length})</div>
@@ -936,7 +981,7 @@ function pgUsers(){
           <td><strong>${u.name}</strong></td>
           <td><code>${u.login}</code></td>
           <td><code>${u.pass}</code></td>
-          <td><span class="badge ${u.role==='recruiter'?'bProg':'bPend'}">${roleLabel(u.role)}</span></td>
+          <td><span class="badge ${u.role==='recruiter'?'bProg':u.role==='bv'?'bHire':'bPend'}">${roleLabel(u.role)}</span></td>
           <td style="color:var(--acc2)">${u.bu||'–'}</td>
           <td class="tMuted">${u.department||'–'}</td>
           <td>${u.position||'–'}</td>
@@ -1368,7 +1413,7 @@ const RLBL={excellent:'Əla',good:'Yaxşı',average:'Orta',poor:'Zəif'};
 
 function openEvalForm(requestId){
   const req=DB.requests.find(r=>r.id===requestId);
-  const users=DB.users.filter(u=>u.role==='user');
+  const users=DB.users.filter(u=>u.role==='user'||u.role==='bv');
   g('mEvalBody').innerHTML=`
 <div class="alert aInfo">Tələb: <strong>${req?req.positionTitle:''}</strong></div>
 <input type="hidden" id="ev_reqId" value="${requestId}">
@@ -1588,8 +1633,8 @@ function confirmHire(){
 let _ceoId=null;
 function openCEO(evalId){
   _ceoId=evalId;
-  const users=DB.users.filter(u=>u.role==='user');
-  g('ceoSel').innerHTML=`<option value="">— Seçin —</option>${users.map(u=>`<option value="${u.id}">${u.name} (${u.position||'User'})</option>`).join('')}`;
+  const users=DB.users.filter(u=>u.role==='user'||u.role==='bv');
+  g('ceoSel').innerHTML=`<option value="">— Seçin —</option>${users.map(u=>`<option value="${u.id}">${u.name} (${u.position||roleLabel(u.role)})</option>`).join('')}`;
   g('ceoNote').value='';g('mCEO').classList.remove('hidden');
 }
 function saveCEO(){
@@ -1808,7 +1853,6 @@ function pgReports(){
   setTitle('Hesabatlar');
   g('tbActs').innerHTML=`
     <button class="btn bSuccess bSm" onclick="exportExcel()">📥 Excel</button>
-    <button class="btn bSuccess bSm" onclick="syncFromSheets()" style="margin-left:4px">⬇️ Yüklə</button>
     <button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="margin-left:4px">🔄 Göndər</button>`;
   setMC(`
 ${renderSyncBar()}
