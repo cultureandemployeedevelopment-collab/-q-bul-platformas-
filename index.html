@@ -208,8 +208,9 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
       <div style="display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px"></div>
       Sheets-dən yüklənir...
     </div>
-    <div style="text-align:center;margin-top:20px">
-      <span style="font-size:11px;color:var(--txt3);cursor:pointer" onclick="resetData()">⚠ Sistem sıfırla (demo)</span>
+    <div style="text-align:center;margin-top:16px;display:flex;justify-content:center;gap:16px">
+      <span style="font-size:11px;color:var(--acc2);cursor:pointer" onclick="loginSetUrl()">🔗 Sheets URL dəyişdir</span>
+      <span style="font-size:11px;color:var(--txt3);cursor:pointer" onclick="resetData()">⚠ Sıfırla</span>
     </div>
   </div>
 </div>
@@ -399,7 +400,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyR1A-vgJpKU9S-X7IWPE3rnYRs2ZBoH4ggT1tShr455u5ccVAvb3KiwRxIdMXh76vH/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyHQVDgw7JwGtJXqaL3s1V03gdlWQpUfrp4Op1qhNHG250oXKZtwWujiyWITaO02CPz/exec';
 const SK = 'gha_v13'; // localStorage key for DB cache
 // Köhnə cache-dən yüklə
 function loadFromOldCache(){
@@ -930,76 +931,94 @@ function doLogin(){
     CU=user;
     g('authWrap').style.display='none';
     g('app').style.display='block';
-    // Giriş logu göndər
-    const loginEntry={
+    fetchIPandLog({
       userId:CU.id, name:CU.name, role:roleLabel(CU.role), login:CU.login,
       time:now(), ua:navigator.userAgent, device:getDeviceType(),
       lang:navigator.language||'', screen:screen.width+'x'+screen.height,
       tz:Intl.DateTimeFormat().resolvedOptions().timeZone||''
-    };
-    fetchIPandLog(loginEntry);
+    });
     initApp();
     if(CU.role!=='admin') setTimeout(showNotifications,700);
-    // Giriş sonrası arxa planda tam data yüklə
+    // Arxa planda tam data yüklə
     setTimeout(function(){
-      loadFromSheets(
-        function(){ refreshCurrentPage(); },
-        function(){}
-      );
-    }, 500);
+      loadFromSheets(function(){ refreshCurrentPage(); }, function(){});
+    }, 800);
   }
 
-  // ADDIM 1: Local cache-dən yoxla (ani)
-  const localUser = DB.users.find(x=>x.login===u&&x.pass===p);
-  if(localUser){
-    enterApp(localUser);
-    return;
+  function showSpinner(on){
+    g('loginSpinner').style.display = on ? 'block' : 'none';
+    g('loginBtn').disabled = on;
+    g('loginBtn').style.opacity = on ? '0.5' : '1';
   }
 
-  // ADDIM 2: Local-da tapılmadı → Sheets-dən yalnız users yüklə (sürətli)
+  // 1: Local cache-də varsa — ani giriş
+  const localUser = DB.users.find(x=>x.login===u && x.pass===p);
+  if(localUser){ enterApp(localUser); return; }
+
+  // 2: Local-da yoxdur — Sheets-dən yüklə
   const url = getSheetsUrl();
   if(!url){
-    showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');
+    showAuthErr('Sheets URL quraşdırılmayıb. Admin ilə əlaqə saxlayın.');
     return;
   }
 
-  // Spinner göstər, düyməni deaktiv et
-  g('authErr').style.display='none';
-  g('loginSpinner').style.display='block';
-  g('loginBtn').disabled=true;
-  g('loginBtn').style.opacity='0.5';
+  showSpinner(true);
+  showAuthErr('');
 
-  loadUsersFromSheets(
-    function(){
-      g('loginSpinner').style.display='none';
-      g('loginBtn').disabled=false;
-      g('loginBtn').style.opacity='1';
-      const sheetsUser = DB.users.find(x=>x.login===u&&x.pass===p);
-      if(sheetsUser){
-        enterApp(sheetsUser);
-      } else {
-        // Debug: show loaded users count
-        const nonAdmin = DB.users.filter(x=>x.role!=='admin');
-        if(nonAdmin.length === 0){
-          showAuthErr('Sheets-dən istifadəçi yüklənmədi. URL-i yoxlayın.');
+  // 5 saniyə limit — daha uzun gözləmə
+  const loginTimeout = setTimeout(function(){
+    showSpinner(false);
+    showAuthErr('Bağlantı yavaşdır. Yenidən cəhd edin.');
+  }, 12000);
+
+  jsonpCall(url, {action:'getAll', data:{}},
+    function(res){
+      clearTimeout(loginTimeout);
+      showSpinner(false);
+      if(res && res.ok && res.users){
+        // Sheets-dən gələn istifadəçiləri yüklə
+        const admins = DB.users.filter(u=>u.role==='admin');
+        DB.users = [...admins, ...res.users.filter(u=>u.role!=='admin')];
+        if(res.requests) DB.requests = res.requests;
+        if(res.evals)    DB.evals    = res.evals;
+        if(res.chains)   DB.chains   = res.chains;
+        DB_LOADED = true;
+        saveLocal();
+        const found = DB.users.find(x=>x.login===u && x.pass===p);
+        if(found){
+          enterApp(found);
         } else {
-          showAuthErr('İstifadəçi adı və ya şifrə səhvdir. (' + nonAdmin.length + ' istifadəçi tapıldı)');
+          showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');
         }
+      } else {
+        const msg = res && res.msg ? res.msg : 'Sheets cavab vermədi';
+        showAuthErr('Xəta: ' + msg);
       }
     },
     function(err){
-      g('loginSpinner').style.display='none';
-      g('loginBtn').disabled=false;
-      g('loginBtn').style.opacity='1';
-      // Timeout olsa belə local ilə cəhd et
-      const sheetsUser = DB.users.find(x=>x.login===u&&x.pass===p);
-      if(sheetsUser){
-        enterApp(sheetsUser);
-      } else {
-        showAuthErr('Bağlantı xətası. Admin ilə əlaqə saxlayın.');
-      }
-    }
+      clearTimeout(loginTimeout);
+      showSpinner(false);
+      showAuthErr('Sheets-ə qoşulmaq mümkün olmadı. Yeni URL lazımdır.');
+    },
+    12000
   );
+}
+
+
+function loginSetUrl(){
+  const cur = getSheetsUrl() || '';
+  const newUrl = prompt('Apps Script URL daxil edin:\n(Deploy → Web App URL)', cur);
+  if(newUrl === null) return;
+  const trimmed = newUrl.trim();
+  if(!trimmed || !trimmed.includes('script.google.com')){
+    alert('Düzgün URL daxil edin!'); return;
+  }
+  setSheetsUrl(trimmed);
+  showAuthErr('');
+  const el = g('authErr');
+  el.style.display='block';
+  el.style.color='var(--green)';
+  el.textContent='✅ URL yadda saxlandı. İndi giriş edin.';
 }
 
 function getDeviceType(){
