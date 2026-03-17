@@ -371,7 +371,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwTsOMZSJRIi1jf_qNJXW7zY5hGNUYajrVcOzNS8f4iDHevyqJj1Fc2BQvqnxxOwoKQ/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbw9aliOc6TMeZnXTKQh6HxM8vtGUGIm-ILgH1GcofJjGAtJqM-9VcZ6xudJd77WOeuv/exec';
 const SK = 'gha_v8';
 const SHEETS_URL_KEY = 'gha_sheets_url';
 
@@ -418,13 +418,13 @@ function saveLocal(){
 // Sheets + Cache-ə yaz
 function save(table, item, operation){
   saveLocal();
-  if(!table) return; // sadəcə cache update
-  // operation: 'add', 'update', 'delete'
+  if(!table) return;
   const url = getSheetsUrl();
   if(!url) return;
   if(operation==='add'){
     sheetsCall('addRow', {action:'addRow', table:table, data:item}, true);
   } else if(operation==='update'){
+    // updateRow üçün id və row ayrıca göndər
     sheetsCall('updateRow', {action:'updateRow', table:table, data:{id:item.id, row:item}}, true);
   } else if(operation==='delete'){
     sheetsCall('deleteRow', {action:'deleteRow', table:table, data:{id:item}}, true);
@@ -558,43 +558,35 @@ function syncToSheets(silent){
   setSyncState('spin','Tam sinxronlaşdırılır...');
   if(!silent) toast('Bütün data Sheets-ə göndərilir...','in');
 
-  // Hər cədvəli ayrıca göndər
-  const tasks = [
-    { table:'users',    data: DB.users },
-    { table:'requests', data: DB.requests },
-    { table:'evals',    data: DB.evals },
-    { table:'chains',   data: DB.chains },
-    { table:'logs',     data: DB.logs.slice(0,100) }
+  // Tam sinxronizasiya — hər cədvəli ayrıca write action ilə göndər
+  const tables = [
+    { name:'users',    data: DB.users.filter(u=>u.role!=='admin') },
+    { name:'requests', data: DB.requests },
+    { name:'evals',    data: DB.evals },
+    { name:'chains',   data: DB.chains }
   ];
 
   let idx = 0;
   let errors = 0;
 
   function sendNext(){
-    if(idx >= tasks.length){
+    if(idx >= tables.length){
       if(errors === 0){
-        setSyncState('ok','Son sinxron: ' + now());
-        if(!silent) toast('Bütün cədvəllər Sheets-ə yazıldı ✅','ok');
-        log('Google Sheets sinxronlaşdırıldı (' + tasks.length + ' cədvəl)','G');
+        setSyncState('ok','Son sinxron: '+now());
+        if(!silent) toast('Tam sinxronlaşdı ✅','ok');
       } else {
-        setSyncState('er', errors + ' cədvəl xəta verdi');
-        if(!silent) toast(errors + ' cədvəldə xəta var. Apps Script URL-ni yoxlayın.','er');
+        setSyncState('er', errors+' xəta');
+        if(!silent) toast('Bəzi cədvəllərdə xəta','er');
       }
       return;
     }
-    const task = tasks[idx];
-    idx++;
-    setSyncState('spin', task.table + ' göndərilir... (' + idx + '/' + tasks.length + ')');
-    jsonpCall(url, { action:'syncTable', table: task.table, data: task.data },
-      function(res){
-        if(!res || !res.ok) errors++;
-        sendNext();
-      },
-      function(err){
-        errors++;
-        sendNext();
-      },
-      12000
+    const t = tables[idx++];
+    setSyncState('spin', t.name+' ('+idx+'/'+tables.length+')');
+    // write action bütün datanı bir dəfəyə göndərir
+    jsonpCall(url, {action:'write', table:t.name, data:t.data},
+      function(res){ if(!res||!res.ok) errors++; sendNext(); },
+      function(){ errors++; sendNext(); },
+      20000
     );
   }
 
@@ -605,25 +597,30 @@ function syncToSheets(silent){
 function jsonpCall(url, params, onSuccess, onError, timeout){
   if(!timeout) timeout = 15000;
   const cbName = 'ghg_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
-  
-  const dataStr = JSON.stringify(params.data || params);
-  let fullUrl = url + '?callback=' + cbName;
-  
-  // action və table parametrlərini ayrıca əlavə et
-  if(params.action) fullUrl += '&action=' + encodeURIComponent(params.action);
-  if(params.table)  fullUrl += '&table='  + encodeURIComponent(params.table);
-  fullUrl += '&data=' + encodeURIComponent(dataStr);
 
-  // URL çox uzundursa xəbərdarlıq ver (8000+ char problem ola bilər)
-  if(fullUrl.length > 7500){
-    // Datanı kəs
-    const arr = params.data;
-    if(Array.isArray(arr) && arr.length > 10){
-      // Yalnız ilk 30 elementi göndər
-      const trimmed = Object.assign({}, params, { data: arr.slice(0,30) });
-      jsonpCall(url, trimmed, onSuccess, onError, timeout);
-      return;
-    }
+  // Data-nı hazırla
+  let dataObj = params.data !== undefined ? params.data : {};
+  // Böyük mətn sahələrini kəs (URL limiti üçün)
+  if(dataObj && typeof dataObj === 'object' && !Array.isArray(dataObj)){
+    dataObj = trimLargeFields(dataObj);
+  }
+  const dataStr = JSON.stringify(dataObj);
+
+  // URL yığ
+  let fullUrl = url
+    + '?callback=' + encodeURIComponent(cbName)
+    + '&action='   + encodeURIComponent(params.action || '')
+    + '&table='    + encodeURIComponent(params.table  || '')
+    + '&data='     + encodeURIComponent(dataStr);
+
+  // URL 8000 simvoldan uzundursa — data-nı daha da kəs
+  if(fullUrl.length > 8000){
+    const shorter = JSON.stringify(trimLargeFields(dataObj, 200));
+    fullUrl = url
+      + '?callback=' + encodeURIComponent(cbName)
+      + '&action='   + encodeURIComponent(params.action || '')
+      + '&table='    + encodeURIComponent(params.table  || '')
+      + '&data='     + encodeURIComponent(shorter);
   }
 
   const script = document.createElement('script');
@@ -647,10 +644,29 @@ function jsonpCall(url, params, onSuccess, onError, timeout){
 
   script.onerror = function(){
     cleanup();
-    onError(new Error('Script load error'));
+    onError(new Error('Script xətası — URL yoxlayın'));
   };
 
   document.head.appendChild(script);
+}
+
+// Böyük sahələri kəs (jobDesc, reason, notes kimi uzun mətnlər)
+function trimLargeFields(obj, maxLen){
+  if(!maxLen) maxLen = 500;
+  if(!obj || typeof obj !== 'object') return obj;
+  const out = {};
+  for(const k in obj){
+    if(!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+    const v = obj[k];
+    if(typeof v === 'string' && v.length > maxLen){
+      out[k] = v.substring(0, maxLen) + '…';
+    } else if(v && typeof v === 'object' && !Array.isArray(v)){
+      out[k] = trimLargeFields(v, maxLen);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
 }
 
 // ── Form POST (ehtiyat, cavab oxunmur) ───────────────────────────
