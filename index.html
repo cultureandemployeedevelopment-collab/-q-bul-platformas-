@@ -403,7 +403,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzbloYukYhRPRgj8PCIEtey49bKvvmSlJ-Owwair7Evy2Nar8L-hJUQWiAOmpm3rNTr/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbymuqBVvwvf_BvgaoBqVFZzctCyvDjF_PBFcipNLwZR59adDNEJvT87gfXdfObQF_G7/exec';
 const SK = 'gha_v13'; // localStorage key for DB cache
 // Köhnə cache-dən yüklə
 function loadFromOldCache(){
@@ -718,9 +718,12 @@ function getSheetsUrl(){
 }
 
 function setSheetsUrl(url){
-  localStorage.setItem(SHEETS_URL_KEY, url);
-  updateSyncBar();
+  if(url && url.includes('script.google.com')){
+    localStorage.setItem(SHEETS_URL_KEY, url);
+  }
 }
+
+// saveSheetsUrl — openSheetsSetup() ilə əvəzləndi
 
 // ═══════════════════════════════════════════════════════════
 // ANA SİNXRONİZASİYA — Hissəli JSONP (Chunked)
@@ -784,7 +787,7 @@ function jsonpCall(url, params, onSuccess, onError, timeout){
     + '&table='    + encodeURIComponent(params.table  || '')
     + '&data='     + encodeURIComponent(dataStr);
 
-  console.log('[GS]', params.action + (params.table ? ' ' + params.table : ''), fullUrl.length+'chars');
+  console.log('[GS]', params.action, params.table||'', fullUrl.length+'chars');
 
   const script = document.createElement('script');
   script.src = fullUrl;
@@ -802,8 +805,8 @@ function jsonpCall(url, params, onSuccess, onError, timeout){
 
   window[cbName] = function(result){
     cleanup();
-    // Köhnə GS kodu "Namelum action" və ya "Unknown action" qaytararsa xəbərdar et
-    if(result && result.msg && (result.msg.indexOf('Namelum action') > -1 || result.msg.indexOf('Unknown action') > -1)){
+    // Köhnə GS kodu "Namelum action" qaytararsa xəbərdar et
+    if(result && result.msg && result.msg.indexOf('Namelum action') > -1){
       console.warn('[GS] Köhnə kod:', result.msg);
       showOldGsWarning();
       if(onError) onError(new Error('Köhnə GS: ' + result.msg));
@@ -946,7 +949,7 @@ function doLogin(){
     g('app').style.display='block';
     fetchIPandLog({
       userId:CU.id, name:CU.name, role:roleLabel(CU.role), login:CU.login,
-      time:now(), browser:navigator.userAgent, device:getDeviceType(),
+      time:now(), ua:navigator.userAgent, device:getDeviceType(),
       lang:navigator.language||'', screen:screen.width+'x'+screen.height,
       tz:Intl.DateTimeFormat().resolvedOptions().timeZone||''
     });
