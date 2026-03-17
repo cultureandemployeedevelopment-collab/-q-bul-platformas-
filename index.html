@@ -717,7 +717,10 @@ function getSheetsUrl(){
   return localStorage.getItem(SHEETS_URL_KEY) || DEFAULT_SHEETS_URL || '';
 }
 
-// saveSheetsUrl — openSheetsSetup() ilə əvəzləndi
+function setSheetsUrl(url){
+  localStorage.setItem(SHEETS_URL_KEY, url);
+  updateSyncBar();
+}
 
 // ═══════════════════════════════════════════════════════════
 // ANA SİNXRONİZASİYA — Hissəli JSONP (Chunked)
