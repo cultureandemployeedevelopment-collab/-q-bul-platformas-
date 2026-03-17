@@ -371,7 +371,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyVu4BxzEIP3yVNsJvHX-q_XOXaLydblstLPTZLviQ3tRgSSVTKdNaClee4zN1EVPgl/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwTsOMZSJRIi1jf_qNJXW7zY5hGNUYajrVcOzNS8f4iDHevyqJj1Fc2BQvqnxxOwoKQ/exec';
 const SK = 'gha_v8';
 const SHEETS_URL_KEY = 'gha_sheets_url';
 
@@ -489,15 +489,24 @@ function sheetsCall(action, params, silent){
   jsonpCall(url, params,
     function(res){
       if(res && res.ok){
-        setSyncState('ok','Son yazma: '+now());
-        if(!silent) toast('Saxlandı ✅','ok');
+        setSyncState('ok','✓ '+now());
       } else {
-        setSyncState('er','Yazma xətası');
-        if(!silent) toast('Sheets xəta: '+(res&&res.msg||'?'),'er');
+        setSyncState('er','Xəta: '+(res&&res.msg||'?'));
+        console.error('sheetsCall xəta:', res);
       }
     },
     function(err){
       setSyncState('er','Bağlantı xətası');
+      console.error('sheetsCall network xəta:', err);
+      // 10 saniyə sonra yenidən cəhd et
+      setTimeout(function(){
+        setSyncState('spin','Yenidən cəhd...');
+        jsonpCall(url, params,
+          function(res2){ if(res2&&res2.ok) setSyncState('ok','✓ '+now()); else setSyncState('er','Xəta'); },
+          function(){ setSyncState('er','⚠ Offline'); },
+          12000
+        );
+      }, 10000);
     },
     15000
   );
