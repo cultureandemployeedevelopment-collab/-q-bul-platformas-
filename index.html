@@ -422,6 +422,15 @@ function save(table, item, operation){
   const url = getSheetsUrl();
   if(!url) return;
 
+  // Users cədvəli üçün həmişə tam write istifadə et —
+  // addRow/updateRow/deleteRow əvəzinə bütün sətirləri yenidən göndər.
+  // Bu, Apps Script tərəfindən daha etibarlı şəkildə işlənir.
+  if(table === 'users'){
+    const userData = DB.users.filter(u=>u.role!=='admin');
+    sheetsCall('write', {action:'write', table:'users', data:userData}, true);
+    return;
+  }
+
   if(operation==='delete'){
     sheetsCall('deleteRow', {action:'deleteRow', table:table, data:{id:item}}, true);
     return;
@@ -443,7 +452,8 @@ function makeCompact(table, item){
     return {
       id:item.id, name:item.name, login:item.login, pass:item.pass,
       role:item.role, position:item.position||'', email:item.email||'',
-      bu:item.bu||'', department:item.department||'', struct:item.struct||''
+      bu:item.bu||'', department:item.department||'', struct:item.struct||'',
+      createdAt:item.createdAt||''
     };
   }
   if(table === 'requests'){
@@ -1287,7 +1297,7 @@ function saveUser(){
   if(!dept){toast('Şöbə tələb olunur','er');return;}
   if(DB.users.find(x=>x.login===lg)){toast('Bu login mövcuddur','er');return;}
   saveCatalog(bu,dept);
-  const nu={id:uid(),name:nm,login:lg,pass:ps,email:em,role:g('nuRl').value,position:po,bu,department:dept,struct:g('nuStruct').value.trim()};
+  const nu={id:uid(),name:nm,login:lg,pass:ps,email:em,role:g('nuRl').value,position:po,bu,department:dept,struct:g('nuStruct').value.trim(),createdAt:now()};
   DB.users.push(nu);
   log(`Yeni istifadəçi: ${nm} (${roleLabel(nu.role)})`,'P');
   saveLocal(); save('users', nu, 'add');
