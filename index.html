@@ -371,7 +371,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwSkS-DxYlkkDh_vUWaw4s0JoMuMzsYTTvPRhYqOccN45ktFaUtY1TpBoUzaKfKG0q8/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbx1cFgEOJdBLN8fG_Sb0jWrL0v4kv1CHuWuhRUst32r_UQXxGyGrWms91J7fnqo8Hd1/exec';
 const SK = 'gha_v8';
 const SHEETS_URL_KEY = 'gha_sheets_url';
 
@@ -553,40 +553,22 @@ function loadFromSheets(onDone, onError){
 }
 
 // Universal Sheets çağırışı
-// ── YAZMA: fetch no-cors POST (həmişə işləyir, cavab oxunmur) ────
+// ── YAZMA: JSONP GET ─────────────────────────────────────────────
 function sheetsCall(action, params, silent){
   const url = getSheetsUrl();
   if(!url) return;
-  setSyncState('spin','Yazılır...');
-
-  const body = {
-    action: params.action || action,
-    table:  params.table  || '',
-    data:   params.data   !== undefined ? params.data : {}
-  };
-
-  // fetch no-cors: CORS xətası olmur, cavab oxunmur amma GS-ə data gedir
-  fetch(url, {
-    method: 'POST',
-    mode:   'no-cors',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: 'action=' + encodeURIComponent(body.action)
-        + '&table='  + encodeURIComponent(body.table)
-        + '&data='   + encodeURIComponent(JSON.stringify(body.data))
-  })
-  .then(function(){
-    // no-cors: cavab opaque-dir, uğurlu saymaq olar
-    setSyncState('ok', '✓ ' + now());
-  })
-  .catch(function(err){
-    // fetch xəta verdisə JSONP ilə cəhd et
-    console.warn('fetch xəta, JSONP ilə cəhd:', err.message);
-    jsonpCall(url, params,
-      function(res){ if(res&&res.ok) setSyncState('ok','✓ '+now()); else setSyncState('er','Xəta'); },
-      function()   { setSyncState('er','⚠ Xəta'); },
-      12000
-    );
-  });
+  setSyncState('spin','...');
+  jsonpCall(url, params,
+    function(res){
+      if(res && res.ok){ setSyncState('ok','✓ '+now()); }
+      else { setSyncState('er','Xəta'); console.error('sheetsCall:', res); }
+    },
+    function(err){
+      setSyncState('er','Xəta');
+      console.error('sheetsCall err:', err);
+    },
+    15000
+  );
 }
 
 
@@ -600,14 +582,10 @@ function log(txt,type='B'){
   DB.logs.unshift(entry);
   if(DB.logs.length>300) DB.logs=DB.logs.slice(0,300);
   saveLocal();
-  // Logu Sheets-ə əlavə et (fire-and-forget)
+  // Logu Sheets-ə əlavə et
   const url=getSheetsUrl();
   if(url){
-    fetch(url, {
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:'action=addRow&table=logs&data='+encodeURIComponent(JSON.stringify(entry))
-    }).catch(function(){});
+    jsonpCall(url,{action:'addRow',table:'logs',data:entry},function(){},function(){},8000);
   }
 }
 
@@ -681,19 +659,16 @@ function jsonpCall(url, params, onSuccess, onError, timeout){
   if(!timeout) timeout = 15000;
   const cbName = 'ghg_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
 
-  // Data-nı hazırla
   const dataObj = params.data !== undefined ? params.data : {};
   const dataStr = JSON.stringify(dataObj);
 
-  // URL yığ
   const fullUrl = url
     + '?callback=' + encodeURIComponent(cbName)
     + '&action='   + encodeURIComponent(params.action || '')
     + '&table='    + encodeURIComponent(params.table  || '')
     + '&data='     + encodeURIComponent(dataStr);
 
-  // Debug: URL uzunluğunu log et
-  console.log('[JSONP]', params.action, params.table||'', 'URL len:', fullUrl.length);
+  console.log('[GS]', params.action, params.table||'', fullUrl.length+'chars');
 
   const script = document.createElement('script');
   script.src = fullUrl;
@@ -930,11 +905,7 @@ function fetchIPandLog(entry){
 function sendLoginToSheets(entry){
   const url = getSheetsUrl();
   if(!url) return;
-  fetch(url, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:'action=logLogin&data='+encodeURIComponent(JSON.stringify(entry))
-  }).catch(function(){});
+  jsonpCall(url,{action:'logLogin',data:entry},function(){},function(){},10000);
 }
 
 function showAuthErr(msg){ const el=g('authErr'); el.style.display='block'; el.textContent=msg; el.style.color='var(--red)'; }
