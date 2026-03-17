@@ -146,6 +146,30 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .syncUrl:hover{text-decoration:underline}
 
 .hidden{display:none!important}
+/* ── MOBİL RESPONSIV ── */
+@media(max-width:768px){
+  .sidebar{position:fixed;left:-260px;top:0;height:100%;z-index:200;transition:left .25s}
+  .sidebar.open{left:0;box-shadow:4px 0 24px rgba(0,0,0,.6)}
+  .mainArea{width:100vw}
+  .topbar{padding:10px 14px;padding-left:52px}
+  .tbTitle{font-size:15px}
+  .content{padding:12px}
+  .statsGrid{grid-template-columns:1fr 1fr;gap:10px}
+  .statVal{font-size:22px}
+  .fRow{grid-template-columns:1fr}
+  .modal{max-width:98vw!important;border-radius:12px;margin:10px}
+  .authBox{width:94vw;padding:28px 20px}
+  table{min-width:480px}
+  .mHead{padding:14px 16px}
+  .mBody{padding:16px}
+  .mFoot{padding:10px 16px;flex-wrap:wrap;gap:6px}
+  .topbar{gap:8px}
+}
+@media(max-width:420px){.statsGrid{grid-template-columns:1fr}}
+#mbMenu{display:none;position:fixed;top:10px;left:10px;z-index:300;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:7px 11px;cursor:pointer;font-size:18px;color:var(--txt)}
+#mbOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:190}
+#mbOverlay.show{display:block}
+@media(max-width:768px){#mbMenu{display:flex}}
 .flex{display:flex}.fBetween{display:flex;justify-content:space-between;align-items:center}
 .gap8{gap:8px}.gap12{gap:12px}
 .mt8{margin-top:8px}.mt16{margin-top:16px}.mb16{margin-bottom:16px}
@@ -158,6 +182,8 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 </head>
 <body>
 <div class="toasts" id="toasts"></div>
+<div id="mbMenu" onclick="toggleMobileMenu()">☰</div>
+<div id="mbOverlay" onclick="toggleMobileMenu()"></div>
 
 <!-- AUTH -->
 <div id="authWrap">
@@ -204,6 +230,10 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
       <div class="topbar">
         <div class="tbTitle" id="tbTitle">–</div>
         <div id="tbActs" style="display:flex;align-items:center;gap:8px"></div>
+        <div id="autoSyncBadge" style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--txt3)">
+          <div class="syncDot ok" id="syncDot" style="width:6px;height:6px;flex-shrink:0"></div>
+          <span id="syncTxt">–</span>
+        </div>
       </div>
       <div class="content" id="mc"></div>
     </div>
@@ -325,38 +355,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
   </div>
 </div>
 
-<!-- GOOGLE SHEETS SETUP MODAL -->
-<div class="overlay hidden" id="mSheets">
-  <div class="modal" style="max-width:600px">
-    <div class="mHead"><div class="mTitle">🟢 Google Sheets Quraşdırma</div><button class="btn bGhost bSm" onclick="cm('mSheets')">✕</button></div>
-    <div class="mBody">
-      <div class="alert aInfo">
-        <div>
-          <strong>Apps Script Web App URL-i daxil edin.</strong><br>
-          <span style="font-size:12px;margin-top:4px;display:block">
-            Apps Script → Deploy → New Deployment → Web App olaraq paylaşın.<br>
-            "Execute as: Me" | "Who has access: Anyone" seçin.
-          </span>
-        </div>
-      </div>
-      <div class="fGroup">
-        <label>Apps Script Web App URL *</label>
-        <input id="sheetsUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:var(--mono);font-size:12px">
-      </div>
-      <div class="alert aWarn" style="font-size:12px">
-        ⚠️ <strong>Əhəmiyyətli:</strong> URL-i daxil etdikdən sonra "Test Et" düyməsini basın. 
-        Əgər "ping uğurlu" görürsünüzsə, sinxronizasiya işləyir. 
-        Xəta olarsa — Apps Script-də yenidən Deploy edin (Manage deployments → yeni version).
-      </div>
-      <div id="sheetsTestResult" style="margin-top:8px;font-size:13px"></div>
-    </div>
-    <div class="mFoot">
-      <button class="btn bGhost" onclick="cm('mSheets')">İmtina</button>
-      <button class="btn bInfo" onclick="testSheetsConnection()">🔌 Test Et</button>
-      <button class="btn bSuccess" onclick="saveSheetsUrl()">Yadda Saxla ✓</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Hidden iframe for no-cors POST -->
 <iframe id="syncFrame" name="syncFrame" style="display:none"></iframe>
@@ -367,7 +366,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwVpq9KUMRZ2mEwEhhSvn0s7R3dlAXtr5D831XbWsWNGhbLTqI_YcSTDv9281MlPrbF/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwsI3AXRMLx0o2ZAmBlUNKZlUN9NJxxJLD-QwTm6u-ebr728QA-Rl9JQPwxpg8cIWN4/exec';
 const SK = 'gha_v8';
 const SHEETS_URL_KEY = 'gha_sheets_url';
 
@@ -382,30 +381,103 @@ function freshStore(){
   };
 }
 
-let DB;
+// ─── DB: Sheets-first arxitektura ────────────────────────────────
+// 1. Platforma açılanda Sheets-dən tam data yüklənir
+// 2. Hər dəyişiklik həm localStorage-ə (cache), həm Sheets-ə yazılır
+// 3. localStorage yalnız offline fallback kimi işləyir
+// ─────────────────────────────────────────────────────────────────
+let DB = freshStore();
+let DB_LOADED = false;   // Sheets-dən yüklənib?
+let _pendingWrites = []; // Offline olan zaman gözləyən yazılar
+
+// Cache-dən yüklə (ilk render üçün)
 try {
   const raw = localStorage.getItem(SK);
-  DB = raw ? JSON.parse(raw) : freshStore();
-  if(!DB.users.find(u=>u.role==='admin'))
-    DB.users.unshift({id:'admin001',login:'1',pass:'1',name:'Admin İstifadəçi',role:'admin',
-      position:'Administrator',email:'admin@gha.az',bu:'',department:'',struct:''});
-  if(!DB.nextReqId) DB.nextReqId=1001;
-  if(!DB.chains)    DB.chains=[];
-  if(!DB.buCatalog) DB.buCatalog=[];
-  if(!DB.deptCatalog) DB.deptCatalog=[];
+  if (raw) {
+    DB = JSON.parse(raw);
+    if(!DB.users.find(u=>u.role==='admin'))
+      DB.users.unshift({id:'admin001',login:'1',pass:'1',name:'Admin İstifadəçi',role:'admin',
+        position:'Administrator',email:'admin@gha.az',bu:'',department:'',struct:''});
+    if(!DB.nextReqId) DB.nextReqId=1001;
+    if(!DB.chains)    DB.chains=[];
+    if(!DB.buCatalog) DB.buCatalog=[];
+    if(!DB.deptCatalog) DB.deptCatalog=[];
+  }
 } catch(e){ DB = freshStore(); }
-save();
 
-function save(){
+// Cache-ə yaz (hər dəyişiklikdən sonra)
+function saveLocal(){
   try{ localStorage.setItem(SK, JSON.stringify(DB)); } catch(e){}
-  if(CU){ scheduleSyncToSheets(); }
 }
 
-let _syncTimer = null;
-function scheduleSyncToSheets(){
-  if(_syncTimer) clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(function(){ syncToSheets(true); }, 3000);
+// Sheets + Cache-ə yaz
+function save(table, item, operation){
+  saveLocal();
+  if(!table) return; // sadəcə cache update
+  // operation: 'add', 'update', 'delete'
+  const url = getSheetsUrl();
+  if(!url) return;
+  if(operation==='add'){
+    sheetsCall('addRow', {action:'addRow', table:table, data:item}, true);
+  } else if(operation==='update'){
+    sheetsCall('updateRow', {action:'updateRow', table:table, data:{id:item.id, row:item}}, true);
+  } else if(operation==='delete'){
+    sheetsCall('deleteRow', {action:'deleteRow', table:table, data:{id:item}}, true);
+  }
 }
+
+// Sheets-dən tam data yüklə
+function loadFromSheets(onDone, onError){
+  const url = getSheetsUrl();
+  if(!url){ if(onError) onError('URL yoxdur'); return; }
+  jsonpCall(url, {action:'getAll', data:{}},
+    function(res){
+      if(res && res.ok){
+        if(res.users    && res.users.length > 0)    DB.users    = [...DB.users.filter(u=>u.role==='admin'), ...res.users.filter(u=>u.role!=='admin')];
+        if(res.requests) DB.requests = res.requests;
+        if(res.evals)    DB.evals    = res.evals;
+        if(res.chains)   DB.chains   = res.chains;
+        if(res.logs)     DB.logs     = res.logs;
+        if(res.nextReqId && res.nextReqId > DB.nextReqId) DB.nextReqId = res.nextReqId;
+        // BU/Dept kataloqu yenilə
+        DB.buCatalog   = [...new Set([...(DB.buCatalog||[]), ...DB.users.filter(u=>u.bu).map(u=>u.bu)])];
+        DB.deptCatalog = [...new Set([...(DB.deptCatalog||[]), ...DB.users.filter(u=>u.department).map(u=>u.department)])];
+        DB_LOADED = true;
+        saveLocal();
+        if(onDone) onDone();
+      } else {
+        if(onError) onError(res&&res.msg||'Xəta');
+      }
+    },
+    function(err){
+      if(onError) onError(err.message||'Bağlantı xətası');
+    },
+    20000
+  );
+}
+
+// Universal Sheets çağırışı
+function sheetsCall(action, params, silent){
+  const url = getSheetsUrl();
+  if(!url) return;
+  setSyncState('spin','Yazılır...');
+  jsonpCall(url, params,
+    function(res){
+      if(res && res.ok){
+        setSyncState('ok','Son yazma: '+now());
+        if(!silent) toast('Saxlandı ✅','ok');
+      } else {
+        setSyncState('er','Yazma xətası');
+        if(!silent) toast('Sheets xəta: '+(res&&res.msg||'?'),'er');
+      }
+    },
+    function(err){
+      setSyncState('er','Bağlantı xətası');
+    },
+    15000
+  );
+}
+
 
 function uid(){  return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function now(){  return new Date().toLocaleString('az-AZ'); }
@@ -413,15 +485,19 @@ function nowMs(){ return Date.now(); }
 function elapsed(ms){ if(!ms) return '–'; const d=Math.floor((Date.now()-ms)/86400000); return d===0?'Bu gün':d+' gün'; }
 
 function log(txt,type='B'){
-  DB.logs.unshift({id:uid(),txt,type,ts:now()});
+  const entry={id:uid(),txt,type,ts:now()};
+  DB.logs.unshift(entry);
   if(DB.logs.length>300) DB.logs=DB.logs.slice(0,300);
-  save();
+  saveLocal();
+  // Logu Sheets-ə əlavə et
+  const url=getSheetsUrl();
+  if(url){ jsonpCall(url,{action:'addRow',table:'logs',data:entry},function(){},function(){},8000); }
 }
 
 function resetData(){
   if(!confirm('Bütün məlumatlar silinəcək. Davam?')) return;
   localStorage.removeItem(SK);
-  DB=freshStore(); save();
+  DB=freshStore(); saveLocal();
   toast('Sistem sıfırlandı. Admin: login=1, şifrə=1','ok');
 }
 
@@ -433,19 +509,8 @@ function getSheetsUrl(){
   return localStorage.getItem(SHEETS_URL_KEY) || DEFAULT_SHEETS_URL || '';
 }
 
-function saveSheetsUrl(){
-  const url = g('sheetsUrl').value.trim();
-  if(!url){ toast('URL daxil edin','er'); return; }
-  if(!url.includes('script.google.com')){ toast('Düzgün Apps Script URL daxil edin','er'); return; }
-  localStorage.setItem(SHEETS_URL_KEY, url);
-  cm('mSheets');
-  toast('URL yadda saxlandı. Sinxronizasiya başlayır...','ok');
-  updateSyncBar();
-  syncToSheets(false);
-}
+// saveSheetsUrl — openSheetsSetup() ilə əvəzləndi
 
-// ── Əsas Sinxronizasiya Funksiyası ──────────────────────────────
-// Google Apps Script ilə işləmək üçün ən etibarlı üsul:
 // ═══════════════════════════════════════════════════════════
 // ANA SİNXRONİZASİYA — Hissəli JSONP (Chunked)
 // Google Apps Script JSONP ilə işləyir, amma URL ~8000 char limit var.
@@ -456,8 +521,8 @@ function syncToSheets(silent){
   const url = getSheetsUrl();
   if(!url){ if(!silent) openSheetsSetup(); return; }
 
-  setSyncState('spin','Sinxronlaşdırılır...');
-  if(!silent) toast('Sheets-ə göndərilir...','in');
+  setSyncState('spin','Tam sinxronlaşdırılır...');
+  if(!silent) toast('Bütün data Sheets-ə göndərilir...','in');
 
   // Hər cədvəli ayrıca göndər
   const tasks = [
@@ -596,56 +661,6 @@ function syncViaFormPost(url, dataStr, silent){
 }
 
 // ── Test Funksiyası ──────────────────────────────────────────────
-function testSheetsConnection(){
-  const url = g('sheetsUrl').value.trim();
-  if(!url){ toast('URL daxil edin','er'); return; }
-  
-  const el = g('sheetsTestResult');
-  el.innerHTML = '<span style="color:var(--yellow)">⏳ Test edilir... (10-15 saniyə gözləyin)</span>';
-  
-  const cbName = 'ghg_ping_' + Date.now();
-  const testUrl = url + '?action=ping&callback=' + cbName + '&t=' + Date.now();
-
-  const script = document.createElement('script');
-  script.src = testUrl;
-
-  const timer = setTimeout(function(){
-    cleanup();
-    // Timeout amma bu o demək deyil ki işləmir — no-cors ilə test edirik
-    el.innerHTML = '<span style="color:var(--yellow)">⚠️ JSONP cavabı gəlmədi, lakin URL düzgün ola bilər. "Yadda Saxla" basıb sinxronizasiyanı yoxlayın.</span>';
-    
-    // fetch no-cors test
-    fetch(url + '?action=ping', { method:'GET', mode:'no-cors' })
-    .then(function(){
-      el.innerHTML = '<span style="color:var(--green)">✅ URL əlçatandır! "Yadda Saxla" basın.</span>';
-    })
-    .catch(function(){
-      el.innerHTML = '<span style="color:var(--red)">❌ URL əlçatan deyil. Apps Script URL-ni yoxlayın.</span>';
-    });
-  }, 12000);
-
-  function cleanup(){
-    clearTimeout(timer);
-    delete window[cbName];
-    if(script.parentNode) script.parentNode.removeChild(script);
-  }
-
-  window[cbName] = function(res){
-    cleanup();
-    if(res && res.ok){
-      el.innerHTML = '<span style="color:var(--green)">✅ Bağlantı uğurlu! ' + (res.msg||'') + ' "Yadda Saxla" basın.</span>';
-    } else {
-      el.innerHTML = '<span style="color:var(--red)">❌ Script xətası: ' + JSON.stringify(res) + '</span>';
-    }
-  };
-
-  script.onerror = function(){
-    cleanup();
-    el.innerHTML = '<span style="color:var(--yellow)">⚠️ Script yüklənmədi. URL-i yoxlayın və ya "Yadda Saxla" basın — sinxronizasiya işləyə bilər.</span>';
-  };
-
-  document.head.appendChild(script);
-}
 
 function setSyncState(state, txt){
   const dot = g('syncDot');
@@ -669,22 +684,31 @@ function updateSyncBar(){
 }
 
 function openSheetsSetup(){
-  g('sheetsUrl').value = getSheetsUrl();
-  g('sheetsTestResult').innerHTML = '';
-  g('mSheets').classList.remove('hidden');
+  const cur = getSheetsUrl();
+  const url = prompt('Apps Script Web App URL-i daxil edin:', cur||'https://script.google.com/macros/s/.../exec');
+  if(url===null) return;
+  if(!url.trim()){ toast('URL boşdur','er'); return; }
+  if(!url.includes('script.google.com')){ toast('Düzgün Apps Script URL daxil edin','er'); return; }
+  localStorage.setItem(SHEETS_URL_KEY, url.trim());
+  toast('URL yadda saxlandı. Test edilir...','ok');
+  updateSyncBar();
+  // Test et
+  jsonpCall(url.trim(), {action:'ping', data:{}},
+    function(res){ if(res&&res.ok) toast('Bağlantı uğurlu ✅','ok'); else toast('Xəta: '+(res&&res.msg||'?'),'er'); },
+    function(){ toast('Timeout — amma URL yadda saxlandı','in'); },
+    10000
+  );
 }
 
 function renderSyncBar(){
   const url = getSheetsUrl();
-  return `
-<div class="syncBar" id="syncBar">
+  return `<div class="syncBar" id="syncBar">
   <div class="syncDot ${url?'ok':''}" id="syncDot"></div>
-  <span class="syncTxt" id="syncTxt">${url?'Google Sheets bağlıdır':'Google Sheets bağlanmayıb'}</span>
-  <a id="syncSheetLink" href="https://drive.google.com/drive/search?q=GHG_Recruitment" target="_blank" class="syncUrl">📊 Sheets-i Aç</a>
-  <button class="btn bGhost bSm" onclick="openSheetsSetup()" style="padding:5px 10px">⚙️ Qurğu</button>
-  <button class="btn bSuccess bSm" onclick="syncToSheets(false)" id="syncBtn" style="padding:5px 10px">🔄 Sinxronlaşdır</button>
-</div>`;
-}
+  <span class="syncTxt" id="syncTxt">${url?'Databaza bağlıdır • 30s-dən bir avtomatik yenilənir':'⚠️ Sheets URL quraşdırılmayıb'}</span>
+  <button class="btn bGhost bSm" onclick="openSheetsSetup()" style="padding:5px 10px" title="URL dəyiş">⚙️ URL</button>
+  <a href="https://drive.google.com/drive/search?q=GHG_Recruitment" target="_blank" class="btn bGhost bSm" style="padding:5px 10px" title="Sheets-i aç">📊 Aç</a>
+  <button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="padding:5px 10px">🔄 Tam Göndər</button>
+</div>`; }
 
 // ═══════════════════════════════════════════════════════════
 // AUTH
@@ -694,21 +718,88 @@ var CU = null;
 function doLogin(){
   const u=g('liU').value.trim(), p=g('liP').value;
   if(!u||!p){showAuthErr('Login və şifrə daxil edin.');return;}
-  const user=DB.users.find(x=>x.login===u&&x.pass===p);
-  if(!user){showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');return;}
-  g('authErr').style.display='none';
-  CU=user;
-  g('authWrap').style.display='none';
-  g('app').style.display='block';
-  log(`Giriş: ${CU.name} (${roleLabel(CU.role)})`,'B');
-  initApp();
-  if(CU.role!=='admin') setTimeout(showNotifications,700);
+
+  showAuthErr('⏳ Yüklənir...');
+  g('authErr').style.display='block';
+
+  function tryLogin(){
+    const user=DB.users.find(x=>x.login===u&&x.pass===p);
+    if(!user){showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');return;}
+    g('authErr').style.display='none';
+    CU=user;
+    g('authWrap').style.display='none';
+    g('app').style.display='block';
+    const loginEntry = {
+    userId:   CU.id,
+    name:     CU.name,
+    role:     roleLabel(CU.role),
+    login:    CU.login,
+    time:     now(),
+    ua:       navigator.userAgent,
+    device:   getDeviceType(),
+    lang:     navigator.language || '',
+    screen:   screen.width + 'x' + screen.height,
+    tz:       Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+  };
+    // IP-ni xarici servisdən al, sonra Sheets-ə göndər
+    fetchIPandLog(loginEntry);
+    initApp();
+    if(CU.role!=='admin') setTimeout(showNotifications,700);
+  }
+
+  // Əvvəlcə Sheets-dən yüklə, sonra giriş
+  const url = getSheetsUrl();
+  if(url && !DB_LOADED){
+    loadFromSheets(
+      function(){ tryLogin(); },
+      function(err){ 
+        // Sheets-ə çatmasa, local cache ilə cəhd et
+        console.warn('Sheets yüklənmədi, local cache ilə giriş:', err);
+        tryLogin();
+      }
+    );
+  } else {
+    tryLogin();
+  }
+}
+
+function getDeviceType(){
+  const ua = navigator.userAgent;
+  if(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)){
+    if(/iPad/i.test(ua)) return 'Tablet (iPad)';
+    if(/Android.*Tablet|Tablet.*Android/i.test(ua)) return 'Tablet (Android)';
+    return 'Mobil';
+  }
+  return 'Kompüter';
+}
+
+function fetchIPandLog(entry){
+  // Pulsuz IP API
+  fetch('https://api.ipify.org?format=json')
+    .then(r=>r.json())
+    .then(data=>{ entry.ip = data.ip || '–'; })
+    .catch(()=>{ entry.ip = '–'; })
+    .finally(()=>{
+      sendLoginToSheets(entry);
+    });
+}
+
+function sendLoginToSheets(entry){
+  const url = getSheetsUrl();
+  if(!url) return;
+  jsonpCall(url, { action:'logLogin', data: entry },
+    function(res){ /* silent */ },
+    function(err){ /* silent */ },
+    10000
+  );
 }
 
 function showAuthErr(msg){ g('authErr').style.display='block'; g('authErr').textContent=msg; }
 
 function doLogout(){
+  stopAutoRefresh();
   CU=null;
+  DB_LOADED=false;
   g('app').style.display='none';
   g('authWrap').style.display='flex';
   g('liU').value=''; g('liP').value='';
@@ -755,6 +846,8 @@ function showNotifications(){
 // APP INIT
 // ═══════════════════════════════════════════════════════════
 let activePage='';
+let _autoRefreshTimer = null;
+const AUTO_REFRESH_MS = 30000; // 30 saniyədə bir Sheets-dən yenilə
 
 function initApp(){
   g('sbAv').textContent=CU.name.charAt(0).toUpperCase();
@@ -764,6 +857,59 @@ function initApp(){
   if(CU.role==='admin') go('dashboard');
   else if(CU.role==='recruiter') go('recDash');
   else go('userReqs');
+  startAutoRefresh();
+}
+
+// ── Avtomatik yeniləmə sistemi ────────────────────────────────────
+function startAutoRefresh(){
+  stopAutoRefresh();
+  const url = getSheetsUrl();
+  if(!url) return;
+  _autoRefreshTimer = setInterval(function(){
+    silentReload();
+  }, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh(){
+  if(_autoRefreshTimer){ clearInterval(_autoRefreshTimer); _autoRefreshTimer=null; }
+}
+
+// Arxa planda yüklə — istifadəçi hiss etməsin
+function silentReload(){
+  const url = getSheetsUrl();
+  if(!url || !CU) return;
+  setSyncState('spin','Yenilənir...');
+  loadFromSheets(
+    function(){
+      setSyncState('ok','Son yeniləmə: '+now());
+      // Cari səhifəni yenilə (user görünüşünü pozma)
+      refreshCurrentPage();
+    },
+    function(){ setSyncState('er','Yeniləmə xətası'); }
+  );
+}
+
+// Cari səhifəni yenidən render et
+function refreshCurrentPage(){
+  if(!activePage || !CU) return;
+  try{ go(activePage); } catch(e){}
+}
+
+// Manual yenilə (düymə yoxdur artıq — amma kod saxlandı)
+function reloadFromSheets(){
+  silentReload();
+}
+
+function toggleMobileMenu(){
+  const sb=document.querySelector('.sidebar');
+  const ov=g('mbOverlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('show');
+}
+
+function closeMobileMenu(){
+  document.querySelector('.sidebar').classList.remove('open');
+  g('mbOverlay').classList.remove('show');
 }
 
 function roleLabel(r){
@@ -793,7 +939,7 @@ function buildNav(){
 <div class="sbSec">
   <div class="sbSecTitle">Hesabat & Export</div>
   <div class="navItem" id="nv_reports" onclick="go('reports')"><span class="ic">📈</span>Hesabatlar</div>
-  <div class="navItem" id="nv_sheets" onclick="go('sheets')"><span class="ic">🟢</span>Google Sheets</div>
+
 </div>`;
     setTimeout(updatePendBadge,100);
   } else if(CU.role==='recruiter'){
@@ -829,13 +975,14 @@ function buildNav(){
 
 function go(page){
   activePage=page;
+  closeMobileMenu();
   document.querySelectorAll('.navItem').forEach(el=>el.classList.remove('active'));
   const el=g('nv_'+page); if(el) el.classList.add('active');
   g('tbActs').innerHTML='';
   const pages={
     dashboard:pgDash,logs:pgLogs,users:pgUsers,chain:pgChain,
     allreqs:pgAllReqs,allevals:pgAllEvals,pending:pgPending,
-    reports:pgReports,sheets:pgSheets,
+    reports:pgReports,loginlog:pgLoginLog,
     recDash:pgRecDash,recReqs:pgRecReqs,recCands:pgRecCands,
     userReqs:pgUserReqs,userEvals:pgUserEvals,userNotes:pgUserNotes
   };
@@ -848,85 +995,13 @@ function setMC(html){g('mc').innerHTML=html;}
 // ═══════════════════════════════════════════════════════════
 // GOOGLE SHEETS PAGE
 // ═══════════════════════════════════════════════════════════
-function pgSheets(){
-  setTitle('Google Sheets İnteqrasiya');
-  setMC(`
-${renderSyncBar()}
-<div class="card">
-  <div class="cTitle">🟢 Google Sheets Quraşdırma Təlimatı</div>
-  <div class="alert aWarn" style="margin-bottom:16px">
-    <div>
-      <strong>Sinxronizasiya necə işləyir:</strong><br>
-      <span style="font-size:12px">Hər məlumat dəyişdikdə (istifadəçi əlavəsi, tələb, dəyərləndirmə) 3 saniyə sonra avtomatik olaraq Google Sheets-ə göndərilir. 
-      "🔄 Sinxronlaşdır" düyməsi ilə manuel də göndərə bilərsiniz.</span>
-    </div>
-  </div>
-  <div style="counter-reset:step">
-    ${[
-      ['script.google.com saytına daxil olun','Yeni Layihə yaradın (Apps Script)'],
-      ['GHG_AppScript.gs faylını açın','Bütün kodu kopyalayıb Apps Script redaktoruna yapışdırın'],
-      ['"Deploy" → "New deployment" düyməsini basın','Tip: Web app | Execute as: Me | Access: Anyone'],
-      ['Deploy düyməsini basın','Avtorizasiya verin, URL-i kopyalayın'],
-      ['Bu platformada "⚙️ Qurğu" düyməsini basın','URL-i yapışdırıb "Yadda Saxla" basın'],
-      ['"🔄 Sinxronlaşdır" düyməsi ilə datanı göndərin','Google Sheets-də avtomatik cədvəllər yaranacaq']
-    ].map((s,i)=>`
-      <div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)">
-        <div style="width:28px;height:28px;border-radius:50%;background:var(--acc3);border:1.5px solid var(--acc);color:var(--acc2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${i+1}</div>
-        <div>
-          <div class="fw6" style="font-size:13px">${s[0]}</div>
-          <div class="tMuted tSm">${s[1]}</div>
-        </div>
-      </div>`).join('')}
-  </div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-  <div class="card">
-    <div class="cTitle">📊 Cədvəl Strukturu</div>
-    ${[
-      ['👥 İstifadəçilər', '11 sütun — Login, Rol, BU, Şöbə...'],
-      ['📄 İşçi Tələbləri', '32 sütun — Vəzifə, Dil, Kompüter, Təsdiq...'],
-      ['🎯 Dəyərləndirmələr', '46 sütun — Recruiter + LM + CEO qiymətlər...'],
-      ['⚙️ Təsdiq Zəncirləri', '9 sütun — Kateqoriya + Təsdiqçilər'],
-      ['📋 Sistem Logları', '4 sütun — Hadisə, Tip, Tarix']
-    ].map(([name,desc])=>`
-      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-        <div class="fw6" style="font-size:13px">${name}</div>
-        <div class="tMuted tSm">${desc}</div>
-      </div>`).join('')}
-  </div>
-  <div class="card">
-    <div class="cTitle">📈 Cari Data Statistikası</div>
-    ${[
-      ['İstifadəçilər', DB.users.filter(u=>u.role!=='admin').length],
-      ['İşçi Tələbləri', DB.requests.length],
-      ['Dəyərləndirmələr', DB.evals.length],
-      ['Təsdiq Zəncirləri', DB.chains.length],
-      ['Sistem Logları', DB.logs.length]
-    ].map(([name,cnt])=>`
-      <div class="fBetween" style="padding:10px 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:13px">${name}</span>
-        <span class="badge bProg">${cnt} sətir</span>
-      </div>`).join('')}
-    <button class="btn bPrimary bFull" onclick="syncToSheets(false)" style="margin-top:14px">🔄 İndi Sinxronlaşdır</button>
-    <div style="margin-top:10px;padding:10px;background:var(--s3);border-radius:8px;font-size:12px;color:var(--txt2)">
-      ℹ️ Hər dəyişiklik 3 saniyə sonra avtomatik göndərilir
-    </div>
-  </div>
-</div>`);
-  updateSyncBar();
-}
-
-// ═══════════════════════════════════════════════════════════
-// ADMIN: DASHBOARD
-// ═══════════════════════════════════════════════════════════
 function pgDash(){
   setTitle('Dashboard');
   const total=DB.requests.length, pend=DB.requests.filter(r=>r.status==='pending_approval').length,
         inprog=DB.requests.filter(r=>r.status==='inprog').length, hired=DB.evals.filter(e=>e.hired).length;
   updatePendBadge();
-  g('tbActs').innerHTML=`<button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="margin-left:4px">🔄 Göndər</button>`;
+  g('tbActs').innerHTML='';
   setMC(`
-${renderSyncBar()}
 <div class="statsGrid">
   <div class="statCard purple"><div class="statVal">${total}</div><div class="statLbl">Ümumi Tələb</div></div>
   <div class="statCard yellow"><div class="statVal">${pend}</div><div class="statLbl">Gözləyən Təsdiq</div></div>
@@ -1050,10 +1125,10 @@ function saveCatalog(bu,dept){
   if(bu&&!DB.buCatalog.includes(bu))DB.buCatalog.push(bu);
   if(dept&&!DB.deptCatalog.includes(dept))DB.deptCatalog.push(dept);
 }
-function addBuCatalog(){ const v=g('newBuInput').value.trim(); if(!v){toast('BU adı daxil edin','er');return;} if(!DB.buCatalog)DB.buCatalog=[]; if(DB.buCatalog.includes(v)){toast('Artıq mövcuddur','er');return;} DB.buCatalog.push(v);save();toast('Əlavə edildi','ok');pgUsers(); }
-function removeBu(b){ DB.buCatalog=(DB.buCatalog||[]).filter(x=>x!==b);save();pgUsers(); }
-function addDeptCatalog(){ const v=g('newDeptInput').value.trim(); if(!v){toast('Şöbə adı daxil edin','er');return;} if(!DB.deptCatalog)DB.deptCatalog=[]; if(DB.deptCatalog.includes(v)){toast('Artıq mövcuddur','er');return;} DB.deptCatalog.push(v);save();toast('Əlavə edildi','ok');pgUsers(); }
-function removeDept(d){ DB.deptCatalog=(DB.deptCatalog||[]).filter(x=>x!==d);save();pgUsers(); }
+function addBuCatalog(){ const v=g('newBuInput').value.trim(); if(!v){toast('BU adı daxil edin','er');return;} if(!DB.buCatalog)DB.buCatalog=[]; if(DB.buCatalog.includes(v)){toast('Artıq mövcuddur','er');return;} DB.buCatalog.push(v);saveLocal();toast('Əlavə edildi','ok');pgUsers(); }
+function removeBu(b){ DB.buCatalog=(DB.buCatalog||[]).filter(x=>x!==b);saveLocal();pgUsers(); }
+function addDeptCatalog(){ const v=g('newDeptInput').value.trim(); if(!v){toast('Şöbə adı daxil edin','er');return;} if(!DB.deptCatalog)DB.deptCatalog=[]; if(DB.deptCatalog.includes(v)){toast('Artıq mövcuddur','er');return;} DB.deptCatalog.push(v);saveLocal();toast('Əlavə edildi','ok');pgUsers(); }
+function removeDept(d){ DB.deptCatalog=(DB.deptCatalog||[]).filter(x=>x!==d);saveLocal();pgUsers(); }
 
 function openAddUser(){
   ['nuNm','nuLg','nuPs','nuEm','nuPo','nuStruct'].forEach(id=>{const el=g(id);if(el)el.value='';});
@@ -1084,7 +1159,9 @@ function updateUser(id){
   if(DB.users.find(x=>x.login===lg&&x.id!==id)){toast('Bu login mövcuddur','er');return;}
   saveCatalog(bu,dept);
   Object.assign(u,{name:nm,login:lg,pass:ps,email:em,role:g('nuRl').value,position:po,bu,department:dept,struct:g('nuStruct').value.trim()});
-  log(`İstifadəçi yeniləndi: ${nm}`,'B');save();cm('mAddUser');toast('Yeniləndi','ok');pgUsers();
+  log(`İstifadəçi yeniləndi: ${nm}`,'B');
+  saveLocal(); save('users', u, 'update');
+  cm('mAddUser');toast('Yeniləndi','ok');pgUsers();
 }
 function saveUser(){
   const nm=g('nuNm').value.trim(),lg=g('nuLg').value.trim(),ps=g('nuPs').value,
@@ -1098,13 +1175,17 @@ function saveUser(){
   saveCatalog(bu,dept);
   const nu={id:uid(),name:nm,login:lg,pass:ps,email:em,role:g('nuRl').value,position:po,bu,department:dept,struct:g('nuStruct').value.trim()};
   DB.users.push(nu);
-  log(`Yeni istifadəçi: ${nm} (${roleLabel(nu.role)})`,'P');save();cm('mAddUser');toast(`${nm} əlavə edildi`,'ok');pgUsers();
+  log(`Yeni istifadəçi: ${nm} (${roleLabel(nu.role)})`,'P');
+  saveLocal(); save('users', nu, 'add');
+  cm('mAddUser');toast(`${nm} əlavə edildi`,'ok');pgUsers();
 }
 function delUser(id){
   if(!confirm('Bu istifadəçini silmək istəyirsiniz?'))return;
   const u=DB.users.find(x=>x.id===id);
   DB.users=DB.users.filter(x=>x.id!==id);
-  log(`İstifadəçi silindi: ${u?.name}`,'R');save();toast('Silindi','ok');pgUsers();
+  log(`İstifadəçi silindi: ${u?.name}`,'R');
+  saveLocal(); save('users', id, 'delete');
+  toast('Silindi','ok');pgUsers();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1112,7 +1193,7 @@ function delUser(id){
 // ═══════════════════════════════════════════════════════════
 function initChains(){
   if(!DB.chains)DB.chains=[];
-  if(DB.chain&&DB.chain.length&&DB.chains.length===0){DB.chains.push({id:uid(),name:'Ümumi',steps:DB.chain});DB.chain=[];save();}
+  if(DB.chain&&DB.chain.length&&DB.chains.length===0){DB.chains.push({id:uid(),name:'Ümumi',steps:DB.chain});DB.chain=[];saveLocal();}
 }
 function getChainForReq(req){
   initChains();
@@ -1159,14 +1240,26 @@ ${[1,2,3].map(s=>{const step=cat?cat.steps.find(x=>x.order===s):null;return `<di
 function saveApprovers(){
   const name=g('catName').value.trim(); if(!name){toast('Ad tələb olunur','er');return;}
   const steps=[]; [1,2,3].forEach(s=>{const v=g('cat_ap_'+s).value; if(v)steps.push({order:s,uid:v});});
-  if(_editCatId){const cat=DB.chains.find(c=>c.id===_editCatId);cat.name=name;cat.steps=steps;log(`Kateqoriya yeniləndi: ${name}`,'P');}
-  else{DB.chains.push({id:uid(),name,steps});log(`Yeni kateqoriya: ${name}`,'P');}
-  save();cm('mAppr');toast('Yadda saxlandı','ok');pgChain();
+  if(_editCatId){
+    const cat=DB.chains.find(c=>c.id===_editCatId);
+    cat.name=name;cat.steps=steps;
+    log(`Kateqoriya yeniləndi: ${name}`,'P');
+    saveLocal(); save('chains', cat, 'update');
+  } else {
+    const newCat={id:uid(),name,steps};
+    DB.chains.push(newCat);
+    log(`Yeni kateqoriya: ${name}`,'P');
+    saveLocal(); save('chains', newCat, 'add');
+  }
+  cm('mAppr');toast('Yadda saxlandı','ok');pgChain();
 }
 function deleteCat(catId){
   const cat=DB.chains.find(c=>c.id===catId);
   if(!confirm(`"${cat?.name}" silinsin?`))return;
-  DB.chains=DB.chains.filter(c=>c.id!==catId);log(`Kateqoriya silindi: ${cat?.name}`,'R');save();toast('Silindi','ok');pgChain();
+  DB.chains=DB.chains.filter(c=>c.id!==catId);
+  log(`Kateqoriya silindi: ${cat?.name}`,'R');
+  saveLocal(); save('chains', catId, 'delete');
+  toast('Silindi','ok');pgChain();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1254,7 +1347,9 @@ function submitReq(editId=null){
   if(editId){
     const req=DB.requests.find(r=>r.id===editId);
     Object.assign(req,data,{updatedAt:now()});
-    log(`Tələb yeniləndi: ${data.positionTitle}`,'B');save();toast('Yeniləndi','ok');
+    log(`Tələb yeniləndi: ${data.positionTitle}`,'B');
+    saveLocal(); save('requests', req, 'update');
+    toast('Yeniləndi','ok');
   } else {
     initChains();
     const chain=data.chainCatId?DB.chains.find(c=>c.id===data.chainCatId)?.steps||[]:[];
@@ -1262,7 +1357,8 @@ function submitReq(editId=null){
       createdAt:now(),createdAtMs:nowMs(),status:chain.length>0?'pending_approval':'inprog',approvals:[],candidates:[]};
     DB.requests.push(req);
     log(`Yeni tələb: ${data.positionTitle} (${CU.name})`,'B');
-    save();toast('Tələb göndərildi!','ok');
+    saveLocal(); save('requests', req, 'add');
+    toast('Tələb göndərildi!','ok');
   }
   cm('mReq');navRefresh();
 }
@@ -1321,14 +1417,16 @@ function approveReq(reqId){
   log(`Tələb təsdiqləndi: ${req.positionTitle} (${CU.name})`,'G');
   if(req.approvals.length>=chain.length){req.status='inprog';toast('Tam təsdiqləndi!','ok');}
   else toast('Təsdiq etdiniz!','ok');
-  save();buildNav();go(activePage);
+  saveLocal(); save('requests', req, 'update');
+  buildNav();go(activePage);
 }
 function rejectReq(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const reason=prompt('Rədd etmə səbəbi:');
   req.status='rejected';req.rejectedBy=CU.name;req.rejectedAt=now();req.rejectReason=reason||'';
   log(`Tələb rədd edildi: ${req.positionTitle} (${CU.name})`,'R');
-  save();toast('Rədd edildi','ok');go(activePage);
+  saveLocal(); save('requests', req, 'update');
+  toast('Rədd edildi','ok');go(activePage);
 }
 function adminAdvanceReq(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
@@ -1336,25 +1434,31 @@ function adminAdvanceReq(reqId){
   if(idx>=chain.length){toast('Zəncir bitib','er');return;}
   req.approvals.push({uid:'admin',name:'Admin (məcburi)',time:now(),action:'admin_advance'});
   if(req.approvals.length>=chain.length){req.status='inprog';}
-  save();toast('İrəlilədi','ok');pgAllReqs();
+  saveLocal(); save('requests', req, 'update');
+  toast('İrəlilədi','ok');pgAllReqs();
 }
 function adminApproveAll(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const chain=getChainForReq(req);
   req.approvals=chain.map(s=>({uid:s.uid,name:DB.users.find(u=>u.id===s.uid)?.name||'Admin',time:now(),action:'admin_full'}));
   req.status='inprog';
-  log(`Admin tam təsdiqləndi: #${req.reqId}`,'G');save();toast('Tam təsdiqləndi!','ok');cm('mReq');pgAllReqs();
+  log(`Admin tam təsdiqləndi: #${req.reqId}`,'G');
+  saveLocal(); save('requests', req, 'update');
+  toast('Tam təsdiqləndi!','ok');cm('mReq');pgAllReqs();
 }
 function adminRejectReq(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const reason=prompt('Rədd etmə səbəbi:');
   req.status='rejected';req.rejectedBy='Admin';req.rejectedAt=now();req.rejectReason=reason||'';
-  save();toast('Rədd edildi','ok');pgAllReqs();
+  saveLocal(); save('requests', req, 'update');
+  toast('Rədd edildi','ok');pgAllReqs();
 }
 function adminDeleteReq(reqId){
   const req=DB.requests.find(r=>r.id===reqId);
   DB.requests=DB.requests.filter(r=>r.id!==reqId);
-  log(`Admin sildi: #${req?.reqId}`,'R');save();toast('Silindi','ok');pgAllReqs();
+  log(`Admin sildi: #${req?.reqId}`,'R');
+  saveLocal(); save('requests', reqId, 'delete');
+  toast('Silindi','ok');pgAllReqs();
 }
 function recruiterAdvance(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
@@ -1364,13 +1468,15 @@ function recruiterAdvance(reqId){
   req.approvals.push({uid:CU.id,name:`Recruiter: ${CU.name}`,time:now(),action:'rec_advance'});
   if(req.approvals.length>=chain.length){req.status='inprog';toast('Tam irəlilədi!','ok');}
   else toast('Növbəti addıma göndərildi','ok');
-  save();pgRecReqs();
+  saveLocal(); save('requests', req, 'update');
+  pgRecReqs();
 }
 function recruiterReject(reqId){
   const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
   const reason=prompt('Rədd səbəbi:');
   req.status='rejected';req.rejectedBy=`Recruiter: ${CU.name}`;req.rejectedAt=now();req.rejectReason=reason||'';
-  save();toast('Rədd edildi','ok');pgRecReqs();
+  saveLocal(); save('requests', req, 'update');
+  toast('Rədd edildi','ok');pgRecReqs();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1487,10 +1593,11 @@ function submitEval(){
     recruiterApproved:false,ceoAssigned:null,ceoApproved:false,hired:false,createdAt:now()};
   DB.evals.push(ev);
   const req=DB.requests.find(r=>r.id===reqId);
-  if(req){req.candidates=req.candidates||[];req.candidates.push(ev.id);}
+  if(req){req.candidates=req.candidates||[];req.candidates.push(ev.id); saveLocal(); save('requests', req, 'update');}
   log(`Dəyərləndirmə: ${cname} (${CU.name})`,'B');
   if(lmId){const lm=DB.users.find(u=>u.id===lmId);if(lm)log(`Form ${lm.name}-ə göndərildi`,'Y');}
-  save();cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');
+  saveLocal(); save('evals', ev, 'add');
+  cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');
   if(CU.role==='recruiter')pgRecCands();
 }
 
@@ -1620,7 +1727,9 @@ function recApprove(evalId){
   const ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
   const note=prompt('Qeyd (ixtiyari):');
   ev.recruiterNote=note||'';ev.recruiterApproved=true;ev.recruiterApprovedAt=now();ev.recruiterName=CU.name;
-  log(`Recruiter uyğun gördü: ${ev.candidateName}`,'G');save();toast('Uyğun qeyd edildi','ok');pgRecCands();
+  log(`Recruiter uyğun gördü: ${ev.candidateName}`,'G');
+  saveLocal(); save('evals', ev, 'update');
+  toast('Uyğun qeyd edildi','ok');pgRecCands();
 }
 
 let _hireId=null;
@@ -1636,8 +1745,11 @@ function openHire(evalId){
 function confirmHire(){
   const ev=DB.evals.find(e=>e.id===_hireId);if(!ev)return;
   ev.hired=true;ev.hiredAt=now();ev.hiredBy=CU.name;ev.hireNote=g('hireNote').value;
-  const req=DB.requests.find(r=>r.id===ev.requestId);if(req)req.status='hired';
-  log(`🎉 İşə qəbul: ${ev.candidateName} (${CU.name})`,'P');save();cm('mHire');toast(`${ev.candidateName} işə qəbul edildi! 🎉`,'ok');pgRecCands();
+  const req=DB.requests.find(r=>r.id===ev.requestId);
+  if(req){req.status='hired'; saveLocal(); save('requests', req, 'update');}
+  log(`🎉 İşə qəbul: ${ev.candidateName} (${CU.name})`,'P');
+  saveLocal(); save('evals', ev, 'update');
+  cm('mHire');toast(`${ev.candidateName} işə qəbul edildi! 🎉`,'ok');pgRecCands();
 }
 
 let _ceoId=null;
@@ -1652,7 +1764,9 @@ function saveCEO(){
   const id=g('ceoSel').value;if(!id){toast('Şəxs seçin','er');return;}
   const u=DB.users.find(x=>x.id===id);
   ev.ceoAssigned=id;ev.ceoNote=g('ceoNote').value;ev.ceoAssignedAt=now();
-  log(`${u?.name}-ə CEO müsahibəsi: ${ev.candidateName}`,'B');save();cm('mCEO');toast(`${u?.name}-ə göndərildi`,'ok');
+  log(`${u?.name}-ə CEO müsahibəsi: ${ev.candidateName}`,'B');
+  saveLocal(); save('evals', ev, 'update');
+  cm('mCEO');toast(`${u?.name}-ə göndərildi`,'ok');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1754,13 +1868,17 @@ function submitLmEval(){
   ev.lmRatings=lmRatings;ev.lmRecommendation=res.value;
   ev.lmRecs=g('lm_recs').value;ev.lmSalaryExp=g('lm_sal').value;ev.lmAdditionalComments=g('lm_add').value;
   ev.lmFormFilled=true;ev.lmFilledAt=now();ev.lineManagerApproved=true;ev.lineManagerApprovedAt=now();ev.lineManagerName=CU.name;
-  log(`LM dəyərləndirdi: ${ev.candidateName} (${CU.name})`,'G');save();cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');pgUserEvals();
+  log(`LM dəyərləndirdi: ${ev.candidateName} (${CU.name})`,'G');
+  saveLocal(); save('evals', ev, 'update');
+  cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');pgUserEvals();
 }
 function ceoApprove(evalId){
   const ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
   const note=prompt('CEO notu (ixtiyari):');
   ev.ceoNote2=note||'';ev.ceoApproved=true;ev.ceoApprovedAt=now();ev.ceoName=CU.name;
-  log(`CEO uyğun gördü: ${ev.candidateName}`,'P');save();toast('Uyğun qeyd edildi','ok');pgUserEvals();
+  log(`CEO uyğun gördü: ${ev.candidateName}`,'P');
+  saveLocal(); save('evals', ev, 'update');
+  toast('Uyğun qeyd edildi','ok');pgUserEvals();
 }
 
 function pgUserNotes(){
@@ -1782,7 +1900,7 @@ function replyNote(noteId){
   const txt=prompt('Cavabınız:');if(!txt)return;
   const n=DB.notes.find(x=>x.id===noteId);
   if(n){n.reply=txt;n.replyTime=now();n.replyBy=CU.name;}
-  save();toast('Cavab göndərildi','ok');pgUserNotes();
+  saveLocal();toast('Cavab göndərildi','ok');pgUserNotes();
 }
 
 let _noteEvalId=null,_noteToId=null;
@@ -1800,7 +1918,7 @@ function openNote(evalId,toId){
 function saveNote(){
   const txt=g('noteTxt').value.trim();if(!txt)return;
   DB.notes.push({id:uid(),evalId:_noteEvalId,fromId:CU.id,toId:_noteToId,txt,ts:now(),reply:'',replyBy:''});
-  save();toast('Qeyd göndərildi','ok');cm('mNote');
+  saveLocal();toast('Qeyd göndərildi','ok');cm('mNote');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1861,11 +1979,8 @@ function pgPending(){
 
 function pgReports(){
   setTitle('Hesabatlar');
-  g('tbActs').innerHTML=`
-    <button class="btn bSuccess bSm" onclick="exportExcel()">📥 Excel</button>
-    <button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="margin-left:4px">🔄 Göndər</button>`;
+  g('tbActs').innerHTML=`<button class="btn bSuccess bSm" onclick="exportExcel()">📥 Excel İxrac</button>`;
   setMC(`
-${renderSyncBar()}
 <div class="statsGrid">
   <div class="statCard purple"><div class="statVal">${DB.requests.length}</div><div class="statLbl">Cəmi Tələb</div></div>
   <div class="statCard blue"><div class="statVal">${DB.requests.filter(r=>r.status==='inprog').length}</div><div class="statLbl">Aktiv</div></div>
@@ -1890,6 +2005,51 @@ ${renderSyncBar()}
 </div>`);
   updateSyncBar();
 }
+
+// ═══════════════════════════════════════════════════════════
+// GİRİŞ JURNALI (Admin)
+// ═══════════════════════════════════════════════════════════
+function pgLoginLog(){
+  setTitle('Giriş Jurnalı');
+  const url = getSheetsUrl();
+  g('tbActs').innerHTML = url
+    ? `<a href="https://drive.google.com/drive/search?q=GHG_Recruitment" target="_blank" class="btn bSuccess bSm">📊 Sheets-də Bax</a>`
+    : `<button class="btn bGhost bSm" onclick="openSheetsSetup()">⚙️ Sheets URL</button>`;
+  setMC(`
+<div class="card">
+  <div class="cTitle">🔐 Giriş Jurnalı</div>
+  <div class="alert aInfo" style="margin-bottom:16px">
+    <div>
+      <strong>Giriş məlumatları birbaşa Google Sheets-ə yazılır.</strong><br>
+      <span style="font-size:12px">Hər giriş zamanı: Ad, login, rol, IP ünvanı, cihaz tipi, brauzer, ekran ölçüsü qeyd olunur.
+      ${url?'<br><a href="https://drive.google.com/drive/search?q=GHG_Recruitment" target="_blank" style="color:var(--acc2)">Cədvəli açmaq üçün buraya basın →</a>':' Əvvəlcə Sheets URL-ni quraşdırın.'}</span>
+    </div>
+  </div>
+  <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+      ${[
+        ['📅','Tarix','Giriş tarixi və saatı'],
+        ['👤','Ad Soyad','İstifadəçinin adı'],
+        ['🔑','Login','İstifadəçi adı'],
+        ['🎭','Rol','Admin / Recruiter / BV / User'],
+        ['🌐','IP Ünvanı','İnternet IP adresi'],
+        ['📱','Cihaz','Mobil / Tablet / Kompüter'],
+        ['🖥️','Brauzer / OS','Chrome, Safari, Windows...'],
+        ['📐','Ekran','Ekran ölçüsü (px)'],
+      ].map(([ic,name,desc])=>`
+      <div style="padding:12px;background:var(--s3);border-radius:8px">
+        <div style="font-size:18px;margin-bottom:4px">${ic}</div>
+        <div class="fw6" style="font-size:13px">${name}</div>
+        <div class="tMuted tSm">${desc}</div>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:16px;padding:14px;background:var(--acc3);border:1px solid var(--acc);border-radius:8px;font-size:13px;color:var(--acc2)">
+      📋 Google Sheets-də <strong>"Girisler"</strong> adlı cədvəldə saxlanılır. Ən yeni giriş yuxarıda göstərilir.
+    </div>
+  </div>
+</div>`);
+}
+
 
 function exportExcel(){
   if(typeof XLSX==='undefined'){toast('Excel kitabxanası yüklənmədi','er');return;}
