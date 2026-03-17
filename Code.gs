@@ -97,13 +97,16 @@ function route(action, table, data) {
 
   if (action === 'getAll') {
     initSheets();
+    var reqs = readRequests();
+    var maxReqId = reqs.reduce(function(m, r) { return Math.max(m, r.reqId || 0); }, 1000);
     return {
-      ok:       true,
-      users:    readUsers(),
-      requests: readRequests(),
-      evals:    readEvals(),
-      chains:   readChains(),
-      logs:     readLogs()
+      ok:        true,
+      users:     readUsers(),
+      requests:  reqs,
+      evals:     readEvals(),
+      chains:    readChains(),
+      logs:      readLogs(),
+      nextReqId: maxReqId + 1
     };
   }
 
