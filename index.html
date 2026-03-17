@@ -90,6 +90,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal{background:var(--s1);border:1px solid var(--border);border-radius:16px;width:100%;max-width:800px;max-height:92vh;overflow-y:auto;box-shadow:var(--sh);animation:suAnim .2s ease}
 @keyframes suAnim{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
 .mHead{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--s1);z-index:2;border-radius:16px 16px 0 0}
 .mTitle{font-size:16px;font-weight:700}
 .mBody{padding:24px}
@@ -202,7 +203,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
       <label>Şifrə / Password</label>
       <input type="password" id="liP" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="btn bPrimary bFull" onclick="doLogin()" style="margin-top:6px">Daxil ol →</button>
+    <button class="btn bPrimary bFull" id="loginBtn" onclick="doLogin()" style="margin-top:6px">Daxil ol →</button>
+    <div id="loginSpinner" style="display:none;text-align:center;margin-top:12px;color:var(--txt2);font-size:13px">
+      <div style="display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px"></div>
+      Sheets-dən yüklənir...
+    </div>
     <div style="text-align:center;margin-top:20px">
       <span style="font-size:11px;color:var(--txt3);cursor:pointer" onclick="resetData()">⚠ Sistem sıfırla (demo)</span>
     </div>
@@ -366,7 +371,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwsI3AXRMLx0o2ZAmBlUNKZlUN9NJxxJLD-QwTm6u-ebr728QA-Rl9JQPwxpg8cIWN4/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyVu4BxzEIP3yVNsJvHX-q_XOXaLydblstLPTZLviQ3tRgSSVTKdNaClee4zN1EVPgl/exec';
 const SK = 'gha_v8';
 const SHEETS_URL_KEY = 'gha_sheets_url';
 
@@ -426,20 +431,42 @@ function save(table, item, operation){
   }
 }
 
-// Sheets-dən tam data yüklə
+// Sheets-dən yalnız istifadəçiləri yüklə (giriş üçün — sürətli)
+function loadUsersFromSheets(onDone, onError){
+  const url = getSheetsUrl();
+  if(!url){ if(onError) onError('URL yoxdur'); return; }
+  jsonpCall(url, {action:'getAll', data:{}},
+    function(res){
+      if(res && res.ok){
+        // İstifadəçiləri yüklə
+        if(res.users && res.users.length > 0){
+          DB.users = [...DB.users.filter(u=>u.role==='admin'), ...res.users.filter(u=>u.role!=='admin')];
+          saveLocal();
+        }
+        if(onDone) onDone();
+      } else {
+        if(onError) onError(res&&res.msg||'Xəta');
+      }
+    },
+    function(err){ if(onError) onError(err.message||'Xəta'); },
+    8000   // 8 saniyə kifayətdir
+  );
+}
+
+// Sheets-dən tam data yüklə (giriş sonrası arxa planda)
 function loadFromSheets(onDone, onError){
   const url = getSheetsUrl();
   if(!url){ if(onError) onError('URL yoxdur'); return; }
   jsonpCall(url, {action:'getAll', data:{}},
     function(res){
       if(res && res.ok){
-        if(res.users    && res.users.length > 0)    DB.users    = [...DB.users.filter(u=>u.role==='admin'), ...res.users.filter(u=>u.role!=='admin')];
+        if(res.users && res.users.length > 0)
+          DB.users = [...DB.users.filter(u=>u.role==='admin'), ...res.users.filter(u=>u.role!=='admin')];
         if(res.requests) DB.requests = res.requests;
         if(res.evals)    DB.evals    = res.evals;
         if(res.chains)   DB.chains   = res.chains;
         if(res.logs)     DB.logs     = res.logs;
         if(res.nextReqId && res.nextReqId > DB.nextReqId) DB.nextReqId = res.nextReqId;
-        // BU/Dept kataloqu yenilə
         DB.buCatalog   = [...new Set([...(DB.buCatalog||[]), ...DB.users.filter(u=>u.bu).map(u=>u.bu)])];
         DB.deptCatalog = [...new Set([...(DB.deptCatalog||[]), ...DB.users.filter(u=>u.department).map(u=>u.department)])];
         DB_LOADED = true;
@@ -449,10 +476,8 @@ function loadFromSheets(onDone, onError){
         if(onError) onError(res&&res.msg||'Xəta');
       }
     },
-    function(err){
-      if(onError) onError(err.message||'Bağlantı xətası');
-    },
-    20000
+    function(err){ if(onError) onError(err.message||'Xəta'); },
+    12000
   );
 }
 
@@ -719,48 +744,69 @@ function doLogin(){
   const u=g('liU').value.trim(), p=g('liP').value;
   if(!u||!p){showAuthErr('Login və şifrə daxil edin.');return;}
 
-  showAuthErr('⏳ Yüklənir...');
-  g('authErr').style.display='block';
-
-  function tryLogin(){
-    const user=DB.users.find(x=>x.login===u&&x.pass===p);
-    if(!user){showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');return;}
+  function enterApp(user){
     g('authErr').style.display='none';
     CU=user;
     g('authWrap').style.display='none';
     g('app').style.display='block';
-    const loginEntry = {
-    userId:   CU.id,
-    name:     CU.name,
-    role:     roleLabel(CU.role),
-    login:    CU.login,
-    time:     now(),
-    ua:       navigator.userAgent,
-    device:   getDeviceType(),
-    lang:     navigator.language || '',
-    screen:   screen.width + 'x' + screen.height,
-    tz:       Intl.DateTimeFormat().resolvedOptions().timeZone || ''
-  };
-    // IP-ni xarici servisdən al, sonra Sheets-ə göndər
+    // Giriş logu göndər
+    const loginEntry={
+      userId:CU.id, name:CU.name, role:roleLabel(CU.role), login:CU.login,
+      time:now(), ua:navigator.userAgent, device:getDeviceType(),
+      lang:navigator.language||'', screen:screen.width+'x'+screen.height,
+      tz:Intl.DateTimeFormat().resolvedOptions().timeZone||''
+    };
     fetchIPandLog(loginEntry);
     initApp();
     if(CU.role!=='admin') setTimeout(showNotifications,700);
+    // Giriş sonrası arxa planda tam data yüklə
+    setTimeout(function(){
+      loadFromSheets(
+        function(){ refreshCurrentPage(); },
+        function(){}
+      );
+    }, 500);
   }
 
-  // Əvvəlcə Sheets-dən yüklə, sonra giriş
-  const url = getSheetsUrl();
-  if(url && !DB_LOADED){
-    loadFromSheets(
-      function(){ tryLogin(); },
-      function(err){ 
-        // Sheets-ə çatmasa, local cache ilə cəhd et
-        console.warn('Sheets yüklənmədi, local cache ilə giriş:', err);
-        tryLogin();
-      }
-    );
-  } else {
-    tryLogin();
+  // ADDIM 1: Local cache-dən yoxla (ani)
+  const localUser = DB.users.find(x=>x.login===u&&x.pass===p);
+  if(localUser){
+    enterApp(localUser);
+    return;
   }
+
+  // ADDIM 2: Local-da tapılmadı → Sheets-dən yalnız users yüklə (sürətli)
+  const url = getSheetsUrl();
+  if(!url){
+    showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');
+    return;
+  }
+
+  // Spinner göstər, düyməni deaktiv et
+  g('authErr').style.display='none';
+  g('loginSpinner').style.display='block';
+  g('loginBtn').disabled=true;
+  g('loginBtn').style.opacity='0.5';
+
+  loadUsersFromSheets(
+    function(){
+      g('loginSpinner').style.display='none';
+      g('loginBtn').disabled=false;
+      g('loginBtn').style.opacity='1';
+      const sheetsUser = DB.users.find(x=>x.login===u&&x.pass===p);
+      if(sheetsUser){
+        enterApp(sheetsUser);
+      } else {
+        showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');
+      }
+    },
+    function(err){
+      g('loginSpinner').style.display='none';
+      g('loginBtn').disabled=false;
+      g('loginBtn').style.opacity='1';
+      showAuthErr('Şəbəkə xətası. Yenidən cəhd edin.');
+    }
+  );
 }
 
 function getDeviceType(){
@@ -794,7 +840,7 @@ function sendLoginToSheets(entry){
   );
 }
 
-function showAuthErr(msg){ g('authErr').style.display='block'; g('authErr').textContent=msg; }
+function showAuthErr(msg){ const el=g('authErr'); el.style.display='block'; el.textContent=msg; el.style.color='var(--red)'; }
 
 function doLogout(){
   stopAutoRefresh();
