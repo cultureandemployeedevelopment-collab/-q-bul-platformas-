@@ -208,13 +208,6 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
       <div style="display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px"></div>
       Sheets-dən yüklənir...
     </div>
-    <div style="text-align:center;margin-top:16px">
-      <div id="currentUrlHint" style="font-size:10px;color:var(--txt3);margin-bottom:8px;word-break:break-all;padding:0 10px"></div>
-      <div style="display:flex;justify-content:center;gap:16px">
-        <span style="font-size:12px;color:var(--acc2);cursor:pointer;text-decoration:underline" onclick="loginSetUrl()">🔗 Sheets URL daxil et / dəyişdir</span>
-        <span style="font-size:11px;color:var(--txt3);cursor:pointer" onclick="resetData()">⚠ Sıfırla</span>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -939,7 +932,7 @@ function renderSyncBar(){
 var CU = null;
 
 function doLogin(){
-  const u=g('liU').value.trim(), p=g('liP').value;
+  const u=g('liU').value.trim(), p=g('liP').value.trim();
   if(!u||!p){showAuthErr('Login və şifrə daxil edin.');return;}
 
   function enterApp(user){
@@ -968,7 +961,7 @@ function doLogin(){
   }
 
   // 1: Local cache-də varsa — ani giriş
-  const localUser = DB.users.find(x=>x.login===u && x.pass===p);
+  const localUser = DB.users.find(x=>String(x.login)===u && String(x.pass)===p);
   if(localUser){ enterApp(localUser); return; }
 
   // 2: Local-da yoxdur — Sheets-dən yüklə
@@ -1000,7 +993,7 @@ function doLogin(){
         if(res.chains)   DB.chains   = res.chains;
         DB_LOADED = true;
         saveLocal();
-        const found = DB.users.find(x=>x.login===u && x.pass===p);
+        const found = DB.users.find(x=>String(x.login)===u && String(x.pass)===p);
         if(found){
           enterApp(found);
         } else {
