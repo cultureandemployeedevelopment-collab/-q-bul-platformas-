@@ -476,11 +476,13 @@ function apiCall(action, table, data, callback, errorCallback) {
   };
   
   // Use POST for all requests to avoid URL length limits
+  // Content-Type must be 'text/plain' (a "simple" CORS type) so the browser
+  // does NOT send an OPTIONS preflight that Google Apps Script cannot answer.
+  // GAS reads the body via e.postData.contents and JSON.parse()s it fine.
   fetch(url, {
     method: 'POST',
-    mode: 'cors',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'text/plain',
     },
     body: JSON.stringify(payload)
   })
