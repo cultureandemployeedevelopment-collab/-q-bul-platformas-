@@ -134,6 +134,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .toasts{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
 .toast{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:var(--sh);min-width:260px;animation:suAnim .3s ease}
 .toast.ok{border-color:var(--green)}.toast.er{border-color:var(--red)}.toast.in{border-color:var(--blue)}
+
+/* ── SHEETS SYNC WIDGET ── */
 .syncBar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--s2);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;flex-wrap:wrap}
 .syncDot{width:9px;height:9px;border-radius:50%;background:var(--txt3);flex-shrink:0;transition:background .3s}
 .syncDot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
@@ -143,7 +145,9 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .syncTxt{font-size:12px;color:var(--txt2);flex:1}
 .syncUrl{font-size:11px;color:var(--acc2);text-decoration:none;word-break:break-all}
 .syncUrl:hover{text-decoration:underline}
+
 .hidden{display:none!important}
+/* ── MOBİL RESPONSIV ── */
 @media(max-width:768px){
   .sidebar{position:fixed;left:-260px;top:0;height:100%;z-index:200;transition:left .25s}
   .sidebar.open{left:0;box-shadow:4px 0 24px rgba(0,0,0,.6)}
@@ -175,9 +179,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
 code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px;border-radius:5px;color:var(--acc2)}
 .emptyState{text-align:center;padding:48px 24px;color:var(--txt3)}
 .emptyState .ei{font-size:40px;margin-bottom:12px}
-.debugPanel{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-family:var(--mono);font-size:11px;max-height:200px;overflow-y:auto}
-.debugLine{padding:2px 0;border-bottom:1px solid var(--border)}
-.debugLine:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -195,17 +196,17 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
     </div>
     <div id="authErr" class="authErr"></div>
     <div class="fGroup">
-      <label>İstifadəçi adı</label>
+      <label>İstifadəçi adı / Username</label>
       <input type="text" id="liU" placeholder="login" autocomplete="username">
     </div>
     <div class="fGroup">
-      <label>Şifrə</label>
+      <label>Şifrə / Password</label>
       <input type="password" id="liP" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn bPrimary bFull" id="loginBtn" onclick="doLogin()" style="margin-top:6px">Daxil ol →</button>
     <div id="loginSpinner" style="display:none;text-align:center;margin-top:12px;color:var(--txt2);font-size:13px">
       <div style="display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px"></div>
-      Yüklənir...
+      Sheets-dən yüklənir...
     </div>
     <div style="text-align:center;margin-top:20px">
       <span style="font-size:11px;color:var(--txt3);cursor:pointer" onclick="resetData()">⚠ Sistem sıfırla (demo)</span>
@@ -235,8 +236,8 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
         <div class="tbTitle" id="tbTitle">–</div>
         <div id="tbActs" style="display:flex;align-items:center;gap:8px"></div>
         <div id="autoSyncBadge" style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--txt3)">
-          <div class="syncDot" id="syncDot" style="width:6px;height:6px;flex-shrink:0"></div>
-          <span id="syncTxt">Offline</span>
+          <div class="syncDot ok" id="syncDot" style="width:6px;height:6px;flex-shrink:0"></div>
+          <span id="syncTxt">–</span>
         </div>
       </div>
       <div class="content" id="mc"></div>
@@ -247,20 +248,18 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 <!-- MODALS -->
 <div class="overlay hidden" id="mReq">
   <div class="modal">
-    <div class="mHead"><div class="mTitle" id="mReqTitle">📋 İşçi Tələbi</div><button class="btn bGhost bSm" onclick="cm('mReq')">✕</button></div>
+    <div class="mHead"><div class="mTitle">📋 İşçi Tələbi Forması</div><button class="btn bGhost bSm" onclick="cm('mReq')">✕</button></div>
     <div class="mBody" id="mReqBody"></div>
     <div class="mFoot" id="mReqFoot"></div>
   </div>
 </div>
-
 <div class="overlay hidden" id="mEval">
   <div class="modal">
-    <div class="mHead"><div class="mTitle">🎯 Dəyərləndirmə</div><button class="btn bGhost bSm" onclick="cm('mEval')">✕</button></div>
+    <div class="mHead"><div class="mTitle">🎯 Namizəd Dəyərləndirmə</div><button class="btn bGhost bSm" onclick="cm('mEval')">✕</button></div>
     <div class="mBody" id="mEvalBody"></div>
     <div class="mFoot" id="mEvalFoot"></div>
   </div>
 </div>
-
 <div class="overlay hidden" id="mViewEval">
   <div class="modal">
     <div class="mHead"><div class="mTitle">👁 Dəyərləndirmə</div><button class="btn bGhost bSm" onclick="cm('mViewEval')">✕</button></div>
@@ -268,7 +267,6 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
     <div class="mFoot"><button class="btn bGhost" onclick="cm('mViewEval')">Bağla</button></div>
   </div>
 </div>
-
 <div class="overlay hidden" id="mAddUser">
   <div class="modal" style="max-width:540px">
     <div class="mHead"><div class="mTitle" id="mAddUserTitle">👤 İstifadəçi</div><button class="btn bGhost bSm" onclick="cm('mAddUser')">✕</button></div>
@@ -309,7 +307,6 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
     <div class="mFoot" id="mAddUserFoot"></div>
   </div>
 </div>
-
 <div class="overlay hidden" id="mAppr">
   <div class="modal" style="max-width:520px">
     <div class="mHead"><div class="mTitle">⚙️ Təsdiq Zənciri</div><button class="btn bGhost bSm" onclick="cm('mAppr')">✕</button></div>
@@ -320,7 +317,6 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
     </div>
   </div>
 </div>
-
 <div class="overlay hidden" id="mNote">
   <div class="modal" style="max-width:500px">
     <div class="mHead"><div class="mTitle">💬 Qeydlər</div><button class="btn bGhost bSm" onclick="cm('mNote')">✕</button></div>
@@ -331,7 +327,6 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
     <div class="mFoot" id="mNoteFoot"></div>
   </div>
 </div>
-
 <div class="overlay hidden" id="mHire">
   <div class="modal" style="max-width:460px">
     <div class="mHead"><div class="mTitle">🎉 İşə Qəbul</div><button class="btn bGhost bSm" onclick="cm('mHire')">✕</button></div>
@@ -343,7 +338,6 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
     <div class="mFoot" id="mHireFoot"></div>
   </div>
 </div>
-
 <div class="overlay hidden" id="mCEO">
   <div class="modal" style="max-width:460px">
     <div class="mHead"><div class="mTitle">👔 Müəssisə Rəhbərinə Göndər</div><button class="btn bGhost bSm" onclick="cm('mCEO')">✕</button></div>
@@ -358,7 +352,6 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
     </div>
   </div>
 </div>
-
 <div class="overlay hidden" id="mNotif">
   <div class="modal" style="max-width:580px">
     <div class="mHead"><div class="mTitle">🔔 Bildirişlər</div><button class="btn bGhost bSm" onclick="cm('mNotif')">✕</button></div>
@@ -367,1926 +360,1897 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
   </div>
 </div>
 
-<div class="overlay hidden" id="mDebug">
-  <div class="modal" style="max-width:600px">
-    <div class="mHead"><div class="mTitle">🐞 Debug Panel</div><button class="btn bGhost bSm" onclick="cm('mDebug')">✕</button></div>
-    <div class="mBody">
-      <div class="fGroup">
-        <label>Google Apps Script URL</label>
-        <input id="debugUrl" type="text" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:var(--mono);font-size:12px">
-      </div>
-      <div class="fGroup">
-        <label>Test əməliyyatı</label>
-        <select id="debugAction">
-          <option value="ping">Ping (Bağlantı yoxla)</option>
-          <option value="getAll">Bütün datanı oxu</option>
-          <option value="addRow">Test user əlavə et</option>
-        </select>
-      </div>
-      <button class="btn bPrimary" onclick="runDebug()">Test et</button>
-      <div class="debugPanel" id="debugOutput" style="margin-top:16px">
-        <div class="tMuted">Nəticə burada görünəcək...</div>
-      </div>
-    </div>
-    <div class="mFoot">
-      <button class="btn bGhost" onclick="cm('mDebug')">Bağla</button>
-      <button class="btn bSuccess" onclick="saveDebugUrl()">URL Yadda Saxla</button>
-    </div>
-  </div>
-</div>
+
+
+<!-- Hidden iframe for no-cors POST -->
+<iframe id="syncFrame" name="syncFrame" style="display:none"></iframe>
 
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // CONFIG
-// ═══════════════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycby462pKBUahD7Ni6oSEQZ67501xnt2X17t0YkY5MWtOHIWKwmyGvapaPSVFTSaKi4xd/exec';
-const SK = 'gha_v13';
-const SHEETS_URL_KEY = 'gha_sheets_url_v13';
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzjSUlfio3y7vg21997nVj-Z__icHzsznRHf8xgzsXqXXDlCtUioqkZNmNzlkzpmgmU/exec';
+const SK = 'gha_v13'; // localStorage key for DB cache
+// Köhnə cache-dən yüklə
+function loadFromOldCache(){
+  const oldKeys = ['gha_v8','gha_v9','gha_v10','gha_v11','gha_v12'];
+  for(const k of oldKeys){
+    try{
+      const raw = localStorage.getItem(k);
+      if(raw){
+        const old = JSON.parse(raw);
+        // Yalnız istifadəçiləri köçür
+        if(old.users && old.users.length > 1) return old.users.filter(u=>u.role!=='admin');
+      }
+    }catch(e){}
+  }
+  return [];
+}
+const SHEETS_URL_KEY = 'gha_sheets_url';
+// Köhnə v13 key-dən də URL-i oxu
+function migrateOldUrl(){
+  // Bütün köhnə key variantlarından URL-i köçür
+  const oldKeys = ['gha_sheets_url_v13','gha_sheets_url_v12','gha_sheets_url_v11',
+                   'gha_sheets_url_v10','gha_sheets_url_v9','ghg_sheets_url',
+                   'gha_sheets_url_v8'];
+  const cur = localStorage.getItem(SHEETS_URL_KEY);
+  if(cur) return;
+  for(const k of oldKeys){
+    const v = localStorage.getItem(k);
+    if(v && v.includes('script.google.com')){ 
+      localStorage.setItem(SHEETS_URL_KEY, v); 
+      console.log('URL köçürüldü:', k, '->', SHEETS_URL_KEY);
+      break; 
+    }
+  }
+}
+migrateOldUrl();
 
-function freshStore() {
+function freshStore(){
   return {
-    users: [{id:'admin001',login:'1',pass:'1',name:'Admin İstifadəçi',role:'admin',
-            position:'Administrator',email:'admin@gha.az',bu:'',department:'',struct:'',createdAt:''}],
-    chains: [],
-    requests: [],
-    evals: [],
-    logs: [],
-    notes: [],
-    buCatalog: [],
-    deptCatalog: [],
-    nextReqId: 1001
+    users:[{id:'admin001',login:'1',pass:'1',name:'Admin İstifadəçi',role:'admin',
+            position:'Administrator',email:'admin@gha.az',bu:'',department:'',struct:''}],
+    chain:[],chains:[],
+    requests:[],evals:[],logs:[],notes:[],
+    buCatalog:[],deptCatalog:[],
+    nextReqId:1001
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// DATABASE
-// ═══════════════════════════════════════════════════════════════════
+// ─── DB: Sheets-first arxitektura ────────────────────────────────
+// 1. Platforma açılanda Sheets-dən tam data yüklənir
+// 2. Hər dəyişiklik həm localStorage-ə (cache), həm Sheets-ə yazılır
+// 3. localStorage yalnız offline fallback kimi işləyir
+// ─────────────────────────────────────────────────────────────────
 let DB = freshStore();
-let DB_LOADED = false;
-let CU = null;
-let activePage = '';
-let _autoRefreshTimer = null;
-const AUTO_REFRESH_MS = 30000;
+let DB_LOADED = false;   // Sheets-dən yüklənib?
+let _pendingWrites = []; // Offline olan zaman gözləyən yazılar
 
-// Load from localStorage
+// Cache-dən yüklə (ilk render üçün)
 try {
   const raw = localStorage.getItem(SK);
   if (raw) {
     DB = JSON.parse(raw);
-    if (!DB.users.find(u => u.role === 'admin')) {
+    if(!DB.users.find(u=>u.role==='admin'))
       DB.users.unshift({id:'admin001',login:'1',pass:'1',name:'Admin İstifadəçi',role:'admin',
-        position:'Administrator',email:'admin@gha.az',bu:'',department:'',struct:'',createdAt:''});
-    }
-    if (!DB.nextReqId) DB.nextReqId = 1001;
-    if (!DB.chains) DB.chains = [];
-    if (!DB.buCatalog) DB.buCatalog = [];
-    if (!DB.deptCatalog) DB.deptCatalog = [];
+        position:'Administrator',email:'admin@gha.az',bu:'',department:'',struct:''});
+    if(!DB.nextReqId) DB.nextReqId=1001;
+    if(!DB.chains)    DB.chains=[];
+    if(!DB.buCatalog) DB.buCatalog=[];
+    if(!DB.deptCatalog) DB.deptCatalog=[];
   }
-} catch(e) { DB = freshStore(); }
+} catch(e){ DB = freshStore(); }
 
-function saveLocal() {
-  try { localStorage.setItem(SK, JSON.stringify(DB)); } catch(e) {}
+// Cache-ə yaz (hər dəyişiklikdən sonra)
+function saveLocal(){
+  try{ localStorage.setItem(SK, JSON.stringify(DB)); } catch(e){}
 }
 
-function getSheetsUrl() {
-  return localStorage.getItem(SHEETS_URL_KEY) || DEFAULT_SHEETS_URL;
-}
-
-function setSheetsUrl(url) {
-  localStorage.setItem(SHEETS_URL_KEY, url);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// GOOGLE SHEETS SYNC - FIXED VERSION
-// ═══════════════════════════════════════════════════════════════════
-
-function apiCall(action, table, data, callback, errorCallback) {
+// Sheets + Cache-ə yaz
+function save(table, item, operation){
+  saveLocal();
+  if(!table) return;
   const url = getSheetsUrl();
-  if (!url) {
-    if (errorCallback) errorCallback('URL not set');
+  if(!url) return;
+
+  if(operation==='delete'){
+    sheetsCall('deleteRow', {action:'deleteRow', table:table, data:{id:item}}, true);
     return;
   }
 
-  const payload = {
-    action: action,
-    table: table || '',
-    data: data || {}
-  };
-
-  // Read-only operations use JSONP directly to avoid the GAS redirect chain
-  // (POST → 302 → script.googleusercontent.com) which causes ERR_CONNECTION_CLOSED.
-  if (action === 'getAll' || action === 'ping') {
-    jsonpCall(url, payload, callback, errorCallback);
-    return;
+  // add və update üçün compact data hazırla
+  const compact = makeCompact(table, item);
+  if(operation==='add'){
+    sheetsCall('addRow', {action:'addRow', table:table, data:compact}, true);
+  } else if(operation==='update'){
+    sheetsCall('updateRow', {action:'updateRow', table:table, data:{id:item.id, row:compact}}, true);
   }
-
-  // Write operations: POST with redirect:'manual' so the browser never follows
-  // the GAS 302 redirect to script.googleusercontent.com (which drops the
-  // connection and causes ERR_CONNECTION_CLOSED).
-  // NOTE: GAS executes the script first, then issues the redirect with the
-  // response body encoded in the redirect URL parameters.  An opaque redirect
-  // therefore confirms that the script ran.  The actual {ok:true/false} result
-  // is not readable in this path; if exact server confirmation is required the
-  // JSONP fallback below will be used on any hard failure instead.
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload),
-    redirect: 'manual'
-  })
-  .then(response => {
-    if (response.type === 'opaqueredirect') {
-      // GAS executed and redirected — treat as success.
-      if (callback) callback({ ok: true });
-      return; // handled; don't proceed to json() parse below
-    }
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    // When CORS is available the response is readable; parse it directly.
-    return response.json().then(result => { if (callback) callback(result); });
-  })
-  .catch(err => {
-    console.error('API Error:', err);
-    // Fallback to JSONP for all operations
-    jsonpCall(url, payload, callback, errorCallback);
-  });
 }
 
-function jsonpCall(url, params, onSuccess, onError, timeout) {
-  if (!timeout) timeout = 15000;
+// Hər cədvəl üçün yalnız lazımi sahələri götür (URL limiti üçün)
+function makeCompact(table, item){
+  if(!item) return {};
+  if(table === 'users'){
+    return {
+      id:item.id, name:item.name, login:item.login, pass:item.pass,
+      role:item.role, position:item.position||'', email:item.email||'',
+      bu:item.bu||'', department:item.department||'', struct:item.struct||''
+    };
+  }
+  if(table === 'requests'){
+    return {
+      id:item.id, reqId:item.reqId, positionTitle:item.positionTitle,
+      department:item.department||'', grade:item.grade||'',
+      salary:item.salary||'', startDate:item.startDate||'',
+      reason:(item.reason||'').substring(0,300),
+      jobDesc:(item.jobDesc||'').substring(0,800),
+      langs:item.langs||[], langOther:item.langOther||'',
+      comp:item.comp||[], compOther:item.compOther||'',
+      chainCatId:item.chainCatId||'',
+      createdByName:item.createdByName||'', createdById:item.createdById||'',
+      createdAt:item.createdAt||'', createdAtMs:item.createdAtMs||0,
+      status:item.status||'', rejectedBy:item.rejectedBy||'',
+      rejectedAt:item.rejectedAt||'', rejectReason:(item.rejectReason||'').substring(0,200),
+      approvals:(item.approvals||[]).slice(0,3),
+      candidates:(item.candidates||[]).slice(0,50)
+    };
+  }
+  if(table === 'evals'){
+    return {
+      id:item.id, requestId:item.requestId,
+      candidateName:item.candidateName, interviewDate:item.interviewDate,
+      interviewerName:item.interviewerName||'', interviewerPosition:item.interviewerPosition||'',
+      applyPosition:item.applyPosition||'',
+      ratings:item.ratings||[], salaryExp:item.salaryExp||'', availDate:item.availDate||'',
+      recs:(item.recs||'').substring(0,300),
+      recommendation:item.recommendation||null,
+      additionalComments:(item.additionalComments||'').substring(0,300),
+      recruiterFilledAt:item.recruiterFilledAt||'',
+      lineManagerId:item.lineManagerId||null,
+      lmRatings:item.lmRatings||[], lmSalaryExp:item.lmSalaryExp||'',
+      lmRecs:(item.lmRecs||'').substring(0,300),
+      lmRecommendation:item.lmRecommendation||null,
+      lmAdditionalComments:(item.lmAdditionalComments||'').substring(0,300),
+      lmFilledAt:item.lmFilledAt||'', lmFormFilled:item.lmFormFilled||false,
+      recruiterApproved:item.recruiterApproved||false,
+      recruiterApprovedAt:item.recruiterApprovedAt||'',
+      lineManagerApproved:item.lineManagerApproved||false,
+      lineManagerApprovedAt:item.lineManagerApprovedAt||'',
+      ceoAssigned:item.ceoAssigned||null,
+      ceoApproved:item.ceoApproved||false, ceoApprovedAt:item.ceoApprovedAt||'',
+      hired:item.hired||false, hiredAt:item.hiredAt||'', hiredBy:item.hiredBy||'',
+      createdByName:item.createdByName||'', createdAt:item.createdAt||''
+    };
+  }
+  if(table === 'chains'){
+    return {
+      id:item.id, name:item.name, steps:item.steps||[]
+    };
+  }
+  if(table === 'logs'){
+    return {id:item.id, txt:(item.txt||'').substring(0,200), type:item.type||'B', ts:item.ts||''};
+  }
+  return item;
+}
+
+// Sheets-dən yalnız istifadəçiləri yüklə (giriş üçün — sürətli)
+function loadUsersFromSheets(onDone, onError){
+  const url = getSheetsUrl();
+  if(!url){ if(onError) onError('URL yoxdur'); return; }
+  jsonpCall(url, {action:'getAll', data:{}},
+    function(res){
+      if(res && res.ok){
+        // İstifadəçiləri yüklə
+        if(res.users && res.users.length > 0){
+          DB.users = [...DB.users.filter(u=>u.role==='admin'), ...res.users.filter(u=>u.role!=='admin')];
+          saveLocal();
+        }
+        if(onDone) onDone();
+      } else {
+        if(onError) onError(res&&res.msg||'Xəta');
+      }
+    },
+    function(err){ if(onError) onError(err.message||'Xəta'); },
+    15000  // 15 saniyə
+  );
+}
+
+// Sheets-dən tam data yüklə (giriş sonrası arxa planda)
+function loadFromSheets(onDone, onError){
+  const url = getSheetsUrl();
+  if(!url){ if(onError) onError('URL yoxdur'); return; }
+  jsonpCall(url, {action:'getAll', data:{}},
+    function(res){
+      if(res && res.ok){
+        if(res.users && res.users.length > 0)
+          DB.users = [...DB.users.filter(u=>u.role==='admin'), ...res.users.filter(u=>u.role!=='admin')];
+        if(res.requests) DB.requests = res.requests;
+        if(res.evals)    DB.evals    = res.evals;
+        if(res.chains)   DB.chains   = res.chains;
+        if(res.logs)     DB.logs     = res.logs;
+        if(res.nextReqId && res.nextReqId > DB.nextReqId) DB.nextReqId = res.nextReqId;
+        DB.buCatalog   = [...new Set([...(DB.buCatalog||[]), ...DB.users.filter(u=>u.bu).map(u=>u.bu)])];
+        DB.deptCatalog = [...new Set([...(DB.deptCatalog||[]), ...DB.users.filter(u=>u.department).map(u=>u.department)])];
+        DB_LOADED = true;
+        saveLocal();
+        if(onDone) onDone();
+      } else {
+        if(onError) onError(res&&res.msg||'Xəta');
+      }
+    },
+    function(err){ if(onError) onError(err.message||'Xəta'); },
+    12000
+  );
+}
+
+// Universal Sheets çağırışı
+// ── YAZMA: JSONP GET ─────────────────────────────────────────────
+function sheetsCall(action, params, silent){
+  const url = getSheetsUrl();
+  if(!url) return;
+  setSyncState('spin','...');
+  jsonpCall(url, params,
+    function(res){
+      if(res && res.ok){ setSyncState('ok','✓ '+now()); }
+      else { setSyncState('er','Xəta'); console.error('sheetsCall:', res); }
+    },
+    function(err){
+      setSyncState('er','Xəta');
+      console.error('sheetsCall err:', err);
+    },
+    15000
+  );
+}
+
+
+function uid(){  return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function now(){  return new Date().toLocaleString('az-AZ'); }
+function nowMs(){ return Date.now(); }
+function elapsed(ms){ if(!ms) return '–'; const d=Math.floor((Date.now()-ms)/86400000); return d===0?'Bu gün':d+' gün'; }
+
+function log(txt,type='B'){
+  const entry={id:uid(),txt,type,ts:now()};
+  DB.logs.unshift(entry);
+  if(DB.logs.length>300) DB.logs=DB.logs.slice(0,300);
+  saveLocal();
+  // Logu Sheets-ə əlavə et
+  const url=getSheetsUrl();
+  if(url){
+    jsonpCall(url,{action:'addRow',table:'logs',data:entry},function(){},function(){},8000);
+  }
+}
+
+function resetData(){
+  if(!confirm('Bütün məlumatlar silinəcək. Davam?')) return;
+  localStorage.removeItem(SK);
+  DB=freshStore(); saveLocal();
+  toast('Sistem sıfırlandı. Admin: login=1, şifrə=1','ok');
+}
+
+// ═══════════════════════════════════════════════════════════
+// GOOGLE SHEETS SYNC — fetch ilə (CORS icazəsi lazımdır)
+// Apps Script-də: ContentService ilə CORS header əlavə etmək lazımdır
+// ═══════════════════════════════════════════════════════════
+function getSheetsUrl(){
+  return localStorage.getItem(SHEETS_URL_KEY) || DEFAULT_SHEETS_URL || '';
+}
+
+// saveSheetsUrl — openSheetsSetup() ilə əvəzləndi
+
+// ═══════════════════════════════════════════════════════════
+// ANA SİNXRONİZASİYA — Hissəli JSONP (Chunked)
+// Google Apps Script JSONP ilə işləyir, amma URL ~8000 char limit var.
+// Buna görə hər cədvəli ayrıca göndəririk.
+// ═══════════════════════════════════════════════════════════
+function syncToSheets(silent){
+  if(silent===undefined) silent=false;
+  const url = getSheetsUrl();
+  if(!url){ if(!silent) openSheetsSetup(); return; }
+
+  setSyncState('spin','Tam sinxronlaşdırılır...');
+  if(!silent) toast('Bütün data Sheets-ə göndərilir...','in');
+
+  // Tam sinxronizasiya — hər cədvəli ayrıca write action ilə göndər
+  const tables = [
+    { name:'users',    data: DB.users.filter(u=>u.role!=='admin') },
+    { name:'requests', data: DB.requests },
+    { name:'evals',    data: DB.evals },
+    { name:'chains',   data: DB.chains }
+  ];
+
+  let idx = 0;
+  let errors = 0;
+
+  function sendNext(){
+    if(idx >= tables.length){
+      if(errors === 0){
+        setSyncState('ok','Son sinxron: '+now());
+        if(!silent) toast('Tam sinxronlaşdı ✅','ok');
+      } else {
+        setSyncState('er', errors+' xəta');
+        if(!silent) toast('Bəzi cədvəllərdə xəta','er');
+      }
+      return;
+    }
+    const t = tables[idx++];
+    setSyncState('spin', t.name+' ('+idx+'/'+tables.length+')');
+    // write action bütün datanı bir dəfəyə göndərir
+    jsonpCall(url, {action:'write', table:t.name, data:t.data},
+      function(res){ if(!res||!res.ok) errors++; sendNext(); },
+      function(){ errors++; sendNext(); },
+      20000
+    );
+  }
+
+  sendNext();
+}
+
+// ── Universal JSONP çağırışı ──────────────────────────────────────
+function jsonpCall(url, params, onSuccess, onError, timeout){
+  if(!timeout) timeout = 15000;
   const cbName = 'ghg_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
-  
+
+  const dataObj = params.data !== undefined ? params.data : {};
+  const dataStr = JSON.stringify(dataObj);
+
+  const fullUrl = url
+    + '?callback=' + encodeURIComponent(cbName)
+    + '&action='   + encodeURIComponent(params.action || '')
+    + '&table='    + encodeURIComponent(params.table  || '')
+    + '&data='     + encodeURIComponent(dataStr);
+
+  console.log('[GS]', params.action, params.table||'', fullUrl.length+'chars');
+
   const script = document.createElement('script');
-  const timer = setTimeout(function() {
+  script.src = fullUrl;
+
+  const timer = setTimeout(function(){
     cleanup();
-    if (onError) onError(new Error('Timeout'));
+    onError(new Error('Timeout'));
   }, timeout);
-  
-  function cleanup() {
+
+  function cleanup(){
     clearTimeout(timer);
     delete window[cbName];
-    if (script.parentNode) script.parentNode.removeChild(script);
+    if(script.parentNode) script.parentNode.removeChild(script);
   }
-  
-  window[cbName] = function(result) {
+
+  window[cbName] = function(result){
     cleanup();
-    if (onSuccess) onSuccess(result);
+    onSuccess(result);
   };
-  
-  const dataStr = encodeURIComponent(JSON.stringify(params.data || {}));
-  script.src = url + '?callback=' + cbName + '&action=' + params.action + '&table=' + (params.table || '') + '&data=' + dataStr;
-  
-  script.onerror = function() {
+
+  script.onerror = function(){
     cleanup();
-    if (onError) onError(new Error('Script error'));
+    onError(new Error('Script xətası — URL yoxlayın'));
   };
-  
+
   document.head.appendChild(script);
 }
 
-function sheetsWrite(table, item, operation) {
-  setSyncState('spin', 'Yazılır...');
-  
-  let action = 'addRow';
-  if (operation === 'update') action = 'updateRow';
-  if (operation === 'delete') action = 'deleteRow';
-  
-  // For users table, always use writeAll to sync entire table
-  if (table === 'users' && operation !== 'delete') {
-    action = 'write';
-    item = DB.users.filter(u => u.role !== 'admin');
+// Böyük sahələri kəs (jobDesc, reason, notes kimi uzun mətnlər)
+function trimLargeFields(obj, maxLen){
+  if(!maxLen) maxLen = 500;
+  if(!obj || typeof obj !== 'object') return obj;
+  const out = {};
+  for(const k in obj){
+    if(!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+    const v = obj[k];
+    if(typeof v === 'string' && v.length > maxLen){
+      out[k] = v.substring(0, maxLen) + '…';
+    } else if(v && typeof v === 'object' && !Array.isArray(v)){
+      out[k] = trimLargeFields(v, maxLen);
+    } else {
+      out[k] = v;
+    }
   }
-  
-  // For delete, send just the ID
-  const data = (operation === 'delete') ? {id: item} : item;
-  
-  apiCall(action, table, data,
-    function(result) {
-      if (result && result.ok) {
-        setSyncState('ok', '✓ ' + now());
-      } else {
-        setSyncState('er', result && result.msg ? result.msg : 'Xəta');
-        console.error('Write failed:', result);
-      }
-    },
-    function(err) {
-      setSyncState('er', 'Offline');
-      console.error('Write error:', err);
-    }
-  );
+  return out;
 }
 
-function sheetsReadAll(onSuccess, onError) {
-  setSyncState('spin', 'Oxunur...');
+// ── Form POST (ehtiyat, cavab oxunmur) ───────────────────────────
+function syncViaFormPost(url, dataStr, silent){
+  setSyncState('spin','Form POST ilə göndərilir...');
   
-  apiCall('getAll', '', {},
-    function(result) {
-      if (result && result.ok) {
-        // Merge with local data, keeping admin user
-        const adminUsers = DB.users.filter(u => u.role === 'admin');
-        DB.users = [...adminUsers, ...(result.users || [])];
-        DB.requests = result.requests || [];
-        DB.evals = result.evals || [];
-        DB.chains = result.chains || [];
-        DB.logs = result.logs || [];
-        
-        // Update catalogs
-        DB.buCatalog = [...new Set(DB.users.filter(u => u.bu).map(u => u.bu))];
-        DB.deptCatalog = [...new Set(DB.users.filter(u => u.department).map(u => u.department))];
-        
-        DB_LOADED = true;
-        saveLocal();
-        
-        setSyncState('ok', '✓ ' + now());
-        if (onSuccess) onSuccess();
-      } else {
-        setSyncState('er', 'Xəta');
-        if (onError) onError(result && result.msg);
-      }
-    },
-    function(err) {
-      setSyncState('er', 'Offline');
-      if (onError) onError(err);
-    }
-  );
-}
+  try {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = 'syncFrame';
+    form.style.display = 'none';
 
-function syncToSheets(silent) {
-  if (!silent) setSyncState('spin', 'Sinxronlaşdırılır...');
-  
-  const tables = ['users', 'requests', 'evals', 'chains'];
-  let completed = 0;
-  let errors = 0;
-  
-  tables.forEach(function(tbl) {
-    const data = (tbl === 'users') ? DB.users.filter(u => u.role !== 'admin') : DB[tbl];
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'data';
+    input.value = dataStr;
+    form.appendChild(input);
+
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'sync';
+    form.appendChild(actionInput);
+
+    document.body.appendChild(form);
+    form.submit();
     
-    apiCall('write', tbl, data,
-      function(result) {
-        completed++;
-        if (!result || !result.ok) errors++;
-        if (completed === tables.length) {
-          if (errors === 0) {
-            setSyncState('ok', '✓ ' + now());
-            if (!silent) toast('Sinxronlaşdırıldı ✅', 'ok');
-          } else {
-            setSyncState('er', errors + ' xəta');
-            if (!silent) toast('Bəzi xətalar var', 'er');
-          }
-        }
-      },
-      function(err) {
-        completed++;
-        errors++;
-        if (completed === tables.length) {
-          setSyncState('er', 'Xəta');
-        }
-      }
-    );
-  });
+    setTimeout(function(){
+      if(document.body.contains(form)) document.body.removeChild(form);
+    }, 1000);
+
+    setTimeout(function(){
+      setSyncState('ok', 'Son sinxron: ' + now());
+      if(!silent) toast('Data Sheets-ə göndərildi ✅','ok');
+    }, 2000);
+
+  } catch(e){
+    setSyncState('er','Göndərmə xətası: ' + e.message);
+    if(!silent) toast('Göndərmə xətası','er');
+  }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// UI HELPERS
-// ═══════════════════════════════════════════════════════════════════
-function g(id) { return document.getElementById(id); }
-function cm(id) { g(id).classList.add('hidden'); }
-function sm(id) { g(id).classList.remove('hidden'); }
-function now() { return new Date().toLocaleString('az-AZ'); }
-function nowMs() { return Date.now(); }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-function td() { return new Date().toISOString().slice(0, 10); }
+// ── Test Funksiyası ──────────────────────────────────────────────
 
-function setSyncState(state, txt) {
+function setSyncState(state, txt){
   const dot = g('syncDot');
   const label = g('syncTxt');
-  if (!dot || !label) return;
+  if(!dot || !label) return;
   dot.className = 'syncDot ' + state;
   label.textContent = txt;
 }
 
-function toast(msg, type) {
-  const icons = {ok: '✅', er: '❌', in: 'ℹ️'};
-  const t = document.createElement('div');
-  t.className = 'toast ' + type;
-  t.innerHTML = '<span>' + (icons[type] || 'ℹ️') + '</span><span>' + msg + '</span>';
-  g('toasts').appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+function updateSyncUrl(url){
+  const el = g('syncSheetLink');
+  if(el){ el.href=url; el.style.display=''; }
 }
 
-function emptyState(icon, txt) {
-  return '<div class="emptyState"><div class="ei">' + icon + '</div><p>' + txt + '</p></div>';
+function updateSyncBar(){
+  const url = getSheetsUrl();
+  const dot = g('syncDot');
+  if(!dot) return;
+  if(url){ dot.className='syncDot ok'; g('syncTxt').textContent='Google Sheets bağlıdır'; }
+  else { dot.className='syncDot'; g('syncTxt').textContent='Google Sheets bağlanmayıb'; }
 }
 
-function roleLabel(r) {
-  if (r === 'admin') return 'Admin';
-  if (r === 'recruiter') return 'Recruiter';
-  if (r === 'bv') return 'BV Rəhbəri';
-  return 'User';
+function openSheetsSetup(){
+  const cur = getSheetsUrl();
+  const url = prompt('Apps Script Web App URL-i daxil edin:', cur||'https://script.google.com/macros/s/.../exec');
+  if(url===null) return;
+  if(!url.trim()){ toast('URL boşdur','er'); return; }
+  if(!url.includes('script.google.com')){ toast('Düzgün Apps Script URL daxil edin','er'); return; }
+  localStorage.setItem(SHEETS_URL_KEY, url.trim());
+  toast('URL yadda saxlandı. Test edilir...','ok');
+  updateSyncBar();
+  // Test et
+  jsonpCall(url.trim(), {action:'ping', data:{}},
+    function(res){ if(res&&res.ok) toast('Bağlantı uğurlu ✅','ok'); else toast('Xəta: '+(res&&res.msg||'?'),'er'); },
+    function(){ toast('Timeout — amma URL yadda saxlandı','in'); },
+    10000
+  );
 }
 
-function sb(s) {
-  return s === 'pending_approval' ? 'bPend' : 
-         s === 'approved' || s === 'inprog' ? 'bProg' : 
-         s === 'rejected' ? 'bRej' : 
-         s === 'hired' ? 'bHire' : 'bPend';
-}
+function renderSyncBar(){
+  const url = getSheetsUrl();
+  return `<div class="syncBar" id="syncBar">
+  <div class="syncDot ${url?'ok':''}" id="syncDot"></div>
+  <span class="syncTxt" id="syncTxt">${url?'Databaza bağlıdır • 30s-dən bir avtomatik yenilənir':'⚠️ Sheets URL quraşdırılmayıb'}</span>
+  <button class="btn bGhost bSm" onclick="openSheetsSetup()" style="padding:5px 10px" title="URL dəyiş">⚙️ URL</button>
+  <a href="https://drive.google.com/drive/search?q=GHG_Recruitment" target="_blank" class="btn bGhost bSm" style="padding:5px 10px" title="Sheets-i aç">📊 Aç</a>
+  <button class="btn bSuccess bSm" onclick="syncToSheets(false)" style="padding:5px 10px">🔄 Tam Göndər</button>
+</div>`; }
 
-function st(s) {
-  const m = {pending_approval: 'Təsdiqdə', approved: 'Təsdiqləndi', inprog: 'Prosesdə', rejected: 'Rədd edildi', hired: 'İşə Qəbul'};
-  return m[s] || s;
-}
-
-function rb(r) {
-  return r === 'suitable' ? 'bAppr' : 
-         r === 'not_suitable' ? 'bRej' : 
-         r === 'other_position' ? 'bProg' : 
-         r === 'blacklist' ? 'bRej' : 'bPend';
-}
-
-function rt(r) {
-  const m = {suitable: 'Uyğundur', not_suitable: 'Uyğun deyil', other_position: 'Digər vakansiya', blacklist: 'Qara siyahı'};
-  return m[r] || r || '–';
-}
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // AUTH
-// ═══════════════════════════════════════════════════════════════════
-function doLogin() {
-  const u = g('liU').value.trim(), p = g('liP').value;
-  if (!u || !p) { showAuthErr('Login və şifrə daxil edin'); return; }
-  
-  function enterApp(user) {
-    g('authErr').style.display = 'none';
-    CU = user;
-    g('authWrap').style.display = 'none';
-    g('app').style.display = 'block';
-    
-    // Log login
-    const entry = {
-      userId: CU.id, name: CU.name, role: roleLabel(CU.role), login: CU.login,
-      time: now(), ua: navigator.userAgent, device: getDeviceType(),
-      lang: navigator.language || '', screen: screen.width + 'x' + screen.height,
-      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+// ═══════════════════════════════════════════════════════════
+var CU = null;
+
+function doLogin(){
+  const u=g('liU').value.trim(), p=g('liP').value;
+  if(!u||!p){showAuthErr('Login və şifrə daxil edin.');return;}
+
+  function enterApp(user){
+    g('authErr').style.display='none';
+    CU=user;
+    g('authWrap').style.display='none';
+    g('app').style.display='block';
+    // Giriş logu göndər
+    const loginEntry={
+      userId:CU.id, name:CU.name, role:roleLabel(CU.role), login:CU.login,
+      time:now(), ua:navigator.userAgent, device:getDeviceType(),
+      lang:navigator.language||'', screen:screen.width+'x'+screen.height,
+      tz:Intl.DateTimeFormat().resolvedOptions().timeZone||''
     };
-    fetchIPandLog(entry);
-    
+    fetchIPandLog(loginEntry);
     initApp();
-    
-    // Background sync
-    setTimeout(function() {
-      sheetsReadAll(function() {
-        refreshCurrentPage();
-      });
+    if(CU.role!=='admin') setTimeout(showNotifications,700);
+    // Giriş sonrası arxa planda tam data yüklə
+    setTimeout(function(){
+      loadFromSheets(
+        function(){ refreshCurrentPage(); },
+        function(){}
+      );
     }, 500);
   }
-  
-  // Check local first
-  const localUser = DB.users.find(x => x.login === u && x.pass === p);
-  if (localUser) {
+
+  // ADDIM 1: Local cache-dən yoxla (ani)
+  const localUser = DB.users.find(x=>x.login===u&&x.pass===p);
+  if(localUser){
     enterApp(localUser);
     return;
   }
-  
-  // Try to load from sheets
+
+  // ADDIM 2: Local-da tapılmadı → Sheets-dən yalnız users yüklə (sürətli)
   const url = getSheetsUrl();
-  if (!url) {
-    showAuthErr('İstifadəçi tapılmadı');
+  if(!url){
+    showAuthErr('İstifadəçi adı və ya şifrə səhvdir.');
     return;
   }
-  
-  g('loginSpinner').style.display = 'block';
-  g('loginBtn').disabled = true;
-  
-  apiCall('getAll', '', {},
-    function(res) {
-      g('loginSpinner').style.display = 'none';
-      g('loginBtn').disabled = false;
-      
-      if (res && res.ok && res.users) {
-        const adminUsers = DB.users.filter(u => u.role === 'admin');
-        DB.users = [...adminUsers, ...res.users];
-        saveLocal();
-        
-        const sheetsUser = DB.users.find(x => x.login === u && x.pass === p);
-        if (sheetsUser) {
-          enterApp(sheetsUser);
-        } else {
-          showAuthErr('İstifadəçi adı və ya şifrə səhvdir');
-        }
+
+  // Spinner göstər, düyməni deaktiv et
+  g('authErr').style.display='none';
+  g('loginSpinner').style.display='block';
+  g('loginBtn').disabled=true;
+  g('loginBtn').style.opacity='0.5';
+
+  loadUsersFromSheets(
+    function(){
+      g('loginSpinner').style.display='none';
+      g('loginBtn').disabled=false;
+      g('loginBtn').style.opacity='1';
+      const sheetsUser = DB.users.find(x=>x.login===u&&x.pass===p);
+      if(sheetsUser){
+        enterApp(sheetsUser);
       } else {
-        showAuthErr('Şəbəkə xətası');
+        // Debug: show loaded users count
+        const nonAdmin = DB.users.filter(x=>x.role!=='admin');
+        if(nonAdmin.length === 0){
+          showAuthErr('Sheets-dən istifadəçi yüklənmədi. URL-i yoxlayın.');
+        } else {
+          showAuthErr('İstifadəçi adı və ya şifrə səhvdir. (' + nonAdmin.length + ' istifadəçi tapıldı)');
+        }
       }
     },
-    function(err) {
-      g('loginSpinner').style.display = 'none';
-      g('loginBtn').disabled = false;
-      showAuthErr('Bağlantı xətası: ' + err);
+    function(err){
+      g('loginSpinner').style.display='none';
+      g('loginBtn').disabled=false;
+      g('loginBtn').style.opacity='1';
+      // Timeout olsa belə local ilə cəhd et
+      const sheetsUser = DB.users.find(x=>x.login===u&&x.pass===p);
+      if(sheetsUser){
+        enterApp(sheetsUser);
+      } else {
+        showAuthErr('Bağlantı xətası. Admin ilə əlaqə saxlayın.');
+      }
     }
   );
 }
 
-function getDeviceType() {
+function getDeviceType(){
   const ua = navigator.userAgent;
-  if (/Android|iPhone|iPad|iPod/i.test(ua)) {
-    if (/iPad/i.test(ua)) return 'Tablet';
+  if(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)){
+    if(/iPad/i.test(ua)) return 'Tablet (iPad)';
+    if(/Android.*Tablet|Tablet.*Android/i.test(ua)) return 'Tablet (Android)';
     return 'Mobil';
   }
   return 'Kompüter';
 }
 
-function fetchIPandLog(entry) {
-  fetch('https://api.ipify.org?format=json')
-    .then(r => r.json())
-    .then(data => { entry.ip = data.ip || '–'; })
-    .catch(() => { entry.ip = '–'; })
-    .finally(() => { sendLoginToSheets(entry); });
+function fetchIPandLog(entry){
+  // JSONP ilə IP al (CORS yoxdur)
+  const cb = 'ipcb_' + Date.now();
+  const s  = document.createElement('script');
+  s.src = 'https://api.ipify.org?format=jsonp&callback=' + cb;
+  const done = function(ip){
+    entry.ip = ip || '–';
+    try{ delete window[cb]; s.remove(); }catch(e){}
+    sendLoginToSheets(entry);
+  };
+  window[cb]  = function(d){ done(d && d.ip); };
+  s.onerror   = function(){ done('–'); };
+  setTimeout(function(){ if(window[cb]) done('–'); }, 4000);
+  document.head.appendChild(s);
 }
 
-function sendLoginToSheets(entry) {
+function sendLoginToSheets(entry){
   const url = getSheetsUrl();
-  if (!url) return;
-  apiCall('logLogin', '', entry, function(){}, function(){});
+  if(!url) return;
+  jsonpCall(url,{action:'logLogin',data:entry},function(){},function(){},10000);
 }
 
-function showAuthErr(msg) {
-  const el = g('authErr');
-  el.style.display = 'block';
-  el.textContent = msg;
-}
+function showAuthErr(msg){ const el=g('authErr'); el.style.display='block'; el.textContent=msg; el.style.color='var(--red)'; }
 
-function doLogout() {
+function doLogout(){
   stopAutoRefresh();
-  CU = null;
-  DB_LOADED = false;
-  g('app').style.display = 'none';
-  g('authWrap').style.display = 'flex';
-  g('liU').value = '';
-  g('liP').value = '';
+  CU=null;
+  DB_LOADED=false;
+  g('app').style.display='none';
+  g('authWrap').style.display='flex';
+  g('liU').value=''; g('liP').value='';
+  g('authErr').style.display='none';
 }
 
-function resetData() {
-  if (!confirm('Bütün məlumatlar silinəcək. Davam?')) return;
-  localStorage.removeItem(SK);
-  DB = freshStore();
-  saveLocal();
-  toast('Sistem sıfırlandı', 'ok');
+function showNotifications(){
+  const items=[];
+  if(CU.role==='recruiter'){
+    DB.requests.filter(r=>r.status==='inprog'&&!(r.candidates||[]).length).forEach(r=>{
+      items.push({icon:'✅',col:'var(--green)',
+        txt:`<strong>#${r.reqId}</strong> — "<b>${r.positionTitle}</b>" tam təsdiqləndi`,
+        fn:`go('recReqs');cm('mNotif')`});
+    });
+  }
+  DB.requests.forEach(r=>{
+    if(r.status!=='pending_approval') return;
+    const chain=getChainForReq(r), idx=(r.approvals||[]).length;
+    if(chain[idx]&&chain[idx].uid===CU.id){
+      items.push({icon:'⏳',col:'var(--yellow)',
+        txt:`<strong>#${r.reqId}</strong> — "<b>${r.positionTitle}</b>" sizin təsdiqi gözləyir`,
+        fn:`viewReq('${r.id}');cm('mNotif')`});
+    }
+  });
+  DB.evals.forEach(e=>{
+    if(e.lineManagerId===CU.id&&!e.lmFormFilled){
+      const req=DB.requests.find(r=>r.id===e.requestId);
+      items.push({icon:'📋',col:'var(--acc2)',
+        txt:`<strong>${e.candidateName}</strong> üçün LM formu doldurmağınız məcburidir`,
+        fn:`cm('mNotif');openLmEvalForm('${e.id}')`});
+    }
+  });
+  const unread=DB.notes.filter(n=>n.toId===CU.id&&!n.reply&&n.fromId!==CU.id);
+  if(unread.length) items.push({icon:'💬',col:'var(--green)',
+    txt:`${unread.length} cavabsız qeyd var`,fn:`go('userNotes');cm('mNotif')`});
+  if(!items.length) return;
+  g('mNotifBody').innerHTML=`<div class="alert aWarn">Sizi gözləyən <strong>${items.length} proses</strong>:</div>`
+    +items.map(it=>`<div onclick="${it.fn}" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--s2);border:1px solid var(--border);border-left:4px solid ${it.col};border-radius:10px;margin-bottom:8px;cursor:pointer">
+      <span style="font-size:22px">${it.icon}</span><div style="flex:1;font-size:13px">${it.txt}</div><span style="font-size:18px;color:var(--txt3)">›</span></div>`).join('');
+  g('mNotif').classList.remove('hidden');
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // APP INIT
-// ═══════════════════════════════════════════════════════════════════
-function initApp() {
-  g('sbAv').textContent = CU.name.charAt(0).toUpperCase();
-  g('sbNm').textContent = CU.name;
-  g('sbRl').textContent = roleLabel(CU.role);
+// ═══════════════════════════════════════════════════════════
+let activePage='';
+let _autoRefreshTimer = null;
+const AUTO_REFRESH_MS = 30000; // 30 saniyədə bir Sheets-dən yenilə
+
+function initApp(){
+  g('sbAv').textContent=CU.name.charAt(0).toUpperCase();
+  g('sbNm').textContent=CU.name;
+  g('sbRl').textContent=roleLabel(CU.role);
   buildNav();
-  
-  if (CU.role === 'admin') go('dashboard');
-  else if (CU.role === 'recruiter') go('recDash');
+  if(CU.role==='admin') go('dashboard');
+  else if(CU.role==='recruiter') go('recDash');
   else go('userReqs');
-  
   startAutoRefresh();
 }
 
-function startAutoRefresh() {
+// ── Avtomatik yeniləmə sistemi ────────────────────────────────────
+function startAutoRefresh(){
   stopAutoRefresh();
-  if (getSheetsUrl()) {
-    _autoRefreshTimer = setInterval(function() {
-      silentReload();
-    }, AUTO_REFRESH_MS);
-  }
+  const url = getSheetsUrl();
+  if(!url) return;
+  _autoRefreshTimer = setInterval(function(){
+    silentReload();
+  }, AUTO_REFRESH_MS);
 }
 
-function stopAutoRefresh() {
-  if (_autoRefreshTimer) {
-    clearInterval(_autoRefreshTimer);
-    _autoRefreshTimer = null;
-  }
+function stopAutoRefresh(){
+  if(_autoRefreshTimer){ clearInterval(_autoRefreshTimer); _autoRefreshTimer=null; }
 }
 
-function silentReload() {
-  if (!CU) return;
-  sheetsReadAll(function() {
-    refreshCurrentPage();
-  });
+// Arxa planda yüklə — istifadəçi hiss etməsin
+function silentReload(){
+  const url = getSheetsUrl();
+  if(!url || !CU) return;
+  setSyncState('spin','Yenilənir...');
+  loadFromSheets(
+    function(){
+      setSyncState('ok','Son yeniləmə: '+now());
+      // Cari səhifəni yenilə (user görünüşünü pozma)
+      refreshCurrentPage();
+    },
+    function(){ setSyncState('er','Yeniləmə xətası'); }
+  );
 }
 
-function refreshCurrentPage() {
-  if (!activePage || !CU) return;
-  try { go(activePage); } catch(e) {}
+// Cari səhifəni yenidən render et
+function refreshCurrentPage(){
+  if(!activePage || !CU) return;
+  try{ go(activePage); } catch(e){}
 }
 
-function toggleMobileMenu() {
-  const sb = document.querySelector('.sidebar');
-  const ov = g('mbOverlay');
+// Manual yenilə (düymə yoxdur artıq — amma kod saxlandı)
+function reloadFromSheets(){
+  silentReload();
+}
+
+function toggleMobileMenu(){
+  const sb=document.querySelector('.sidebar');
+  const ov=g('mbOverlay');
   sb.classList.toggle('open');
   ov.classList.toggle('show');
 }
 
-function closeMobileMenu() {
+function closeMobileMenu(){
   document.querySelector('.sidebar').classList.remove('open');
   g('mbOverlay').classList.remove('show');
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════════════════════════════════
-function buildNav() {
-  const n = g('sbNav');
-  if (CU.role === 'admin') {
-    n.innerHTML = `
-      <div class="sbSec"><div class="sbSecTitle">Ümumi</div>
-        <div class="navItem" id="nv_dashboard" onclick="go('dashboard')"><span class="ic">📊</span>Dashboard</div>
-        <div class="navItem" id="nv_logs" onclick="go('logs')"><span class="ic">📋</span>Sistem Logları</div>
-      </div>
-      <div class="sbSec"><div class="sbSecTitle">İdarəetmə</div>
-        <div class="navItem" id="nv_users" onclick="go('users')"><span class="ic">👥</span>İstifadəçilər</div>
-        <div class="navItem" id="nv_chain" onclick="go('chain')"><span class="ic">⚙️</span>Təsdiq Kateqoriyaları</div>
-        <div class="navItem" id="nv_allreqs" onclick="go('allreqs')"><span class="ic">📄</span>Bütün Tələblər</div>
-        <div class="navItem" id="nv_allevals" onclick="go('allevals')"><span class="ic">🎯</span>Dəyərləndirmələr</div>
-        <div class="navItem" id="nv_pending" onclick="go('pending')"><span class="ic">⏳</span>Gözləyən <span class="niBadge" id="pendBadge" style="display:none">0</span></div>
-      </div>
-      <div class="sbSec"><div class="sbSecTitle">Hesabat</div>
-        <div class="navItem" id="nv_reports" onclick="go('reports')"><span class="ic">📈</span>Hesabatlar</div>
-        <div class="navItem" onclick="sm('mDebug')"><span class="ic">🐞</span>Debug</div>
-      </div>`;
-    updatePendBadge();
-  } else if (CU.role === 'recruiter') {
-    n.innerHTML = `
-      <div class="sbSec"><div class="sbSecTitle">Recruiter Panel</div>
-        <div class="navItem" id="nv_recDash" onclick="go('recDash')"><span class="ic">📊</span>Dashboard</div>
-        <div class="navItem" id="nv_recReqs" onclick="go('recReqs')"><span class="ic">📄</span>İşçi Tələbləri</div>
-        <div class="navItem" id="nv_recCands" onclick="go('recCands')"><span class="ic">🎯</span>Namizədlər</div>
-        <div class="navItem" id="nv_newReq" onclick="openReqForm()"><span class="ic">➕</span>Yeni Tələb</div>
-      </div>`;
+function roleLabel(r){
+  if(r==='admin') return 'Admin';
+  if(r==='recruiter') return 'Recruiter';
+  if(r==='bv') return 'BV Rəhbəri';
+  return 'User';
+}
+
+function buildNav(){
+  const n=g('sbNav');
+  if(CU.role==='admin'){
+    n.innerHTML=`
+<div class="sbSec">
+  <div class="sbSecTitle">Ümumi</div>
+  <div class="navItem" id="nv_dashboard" onclick="go('dashboard')"><span class="ic">📊</span>Dashboard</div>
+  <div class="navItem" id="nv_logs" onclick="go('logs')"><span class="ic">📋</span>Sistem Logları</div>
+</div>
+<div class="sbSec">
+  <div class="sbSecTitle">İdarəetmə</div>
+  <div class="navItem" id="nv_users" onclick="go('users')"><span class="ic">👥</span>İstifadəçilər</div>
+  <div class="navItem" id="nv_chain" onclick="go('chain')"><span class="ic">⚙️</span>Təsdiq Kateqoriyaları</div>
+  <div class="navItem" id="nv_allreqs" onclick="go('allreqs')"><span class="ic">📄</span>Bütün Tələblər</div>
+  <div class="navItem" id="nv_allevals" onclick="go('allevals')"><span class="ic">🎯</span>Dəyərləndirmələr</div>
+  <div class="navItem" id="nv_pending" onclick="go('pending')"><span class="ic">⏳</span>Gözləyən <span class="niBadge" id="pendBadge" style="display:none">0</span></div>
+</div>
+<div class="sbSec">
+  <div class="sbSecTitle">Hesabat & Export</div>
+  <div class="navItem" id="nv_reports" onclick="go('reports')"><span class="ic">📈</span>Hesabatlar</div>
+
+</div>`;
+    setTimeout(updatePendBadge,100);
+  } else if(CU.role==='recruiter'){
+    n.innerHTML=`
+<div class="sbSec">
+  <div class="sbSecTitle">Recruiter Panel</div>
+  <div class="navItem" id="nv_recDash" onclick="go('recDash')"><span class="ic">📊</span>Dashboard</div>
+  <div class="navItem" id="nv_recReqs" onclick="go('recReqs')"><span class="ic">📄</span>İşçi Tələbləri</div>
+  <div class="navItem" id="nv_recCands" onclick="go('recCands')"><span class="ic">🎯</span>Namizədlər</div>
+  <div class="navItem" id="nv_newReq" onclick="openReqForm()"><span class="ic">➕</span>Yeni Tələb</div>
+</div>`;
   } else {
-    n.innerHTML = `
-      <div class="sbSec"><div class="sbSecTitle">User Panel</div>
-        <div class="navItem" id="nv_userReqs" onclick="go('userReqs')"><span class="ic">📄</span>Tələb Formaları</div>
-        <div class="navItem" id="nv_userEvals" onclick="go('userEvals')"><span class="ic">🎯</span>Dəyərləndirmələrim</div>
-        <div class="navItem" id="nv_newReq" onclick="openReqForm()"><span class="ic">➕</span>Yeni Tələb</div>
-      </div>`;
+    n.innerHTML=`
+<div class="sbSec">
+  <div class="sbSecTitle">User Panel</div>
+  <div class="navItem" id="nv_userReqs" onclick="go('userReqs')"><span class="ic">📄</span>Tələb Formaları <span class="niBadge" id="myApprBadge" style="display:none">!</span></div>
+  <div class="navItem" id="nv_userEvals" onclick="go('userEvals')"><span class="ic">🎯</span>Dəyərləndirmələrim</div>
+  <div class="navItem" id="nv_userNotes" onclick="go('userNotes')"><span class="ic">💬</span>Qeydlər <span class="niBadge" id="noteBadge" style="display:none">!</span></div>
+  <div class="navItem" id="nv_newReq" onclick="openReqForm()"><span class="ic">➕</span>Yeni Tələb</div>
+</div>`;
+    setTimeout(()=>{
+      const pend=DB.requests.filter(r=>{
+        if(r.status!=='pending_approval') return false;
+        const chain=getChainForReq(r),idx=(r.approvals||[]).length;
+        return chain[idx]&&chain[idx].uid===CU.id;
+      });
+      const b=g('myApprBadge'); if(b&&pend.length){b.style.display='';b.textContent=pend.length;}
+      const nn=DB.notes.filter(n=>n.toId===CU.id&&!n.reply&&n.fromId!==CU.id);
+      const nb=g('noteBadge'); if(nb&&nn.length){nb.style.display='';nb.textContent=nn.length;}
+    },100);
   }
 }
 
-function go(page) {
-  activePage = page;
+function go(page){
+  activePage=page;
   closeMobileMenu();
-  document.querySelectorAll('.navItem').forEach(el => el.classList.remove('active'));
-  const el = g('nv_' + page);
-  if (el) el.classList.add('active');
-  g('tbActs').innerHTML = '';
-  
-  const pages = {
-    dashboard: pgDash, logs: pgLogs, users: pgUsers, chain: pgChain,
-    allreqs: pgAllReqs, allevals: pgAllEvals, pending: pgPending, reports: pgReports,
-    recDash: pgRecDash, recReqs: pgRecReqs, recCands: pgRecCands,
-    userReqs: pgUserReqs, userEvals: pgUserEvals
+  document.querySelectorAll('.navItem').forEach(el=>el.classList.remove('active'));
+  const el=g('nv_'+page); if(el) el.classList.add('active');
+  g('tbActs').innerHTML='';
+  const pages={
+    dashboard:pgDash,logs:pgLogs,users:pgUsers,chain:pgChain,
+    allreqs:pgAllReqs,allevals:pgAllEvals,pending:pgPending,
+    reports:pgReports,loginlog:pgLoginLog,
+    recDash:pgRecDash,recReqs:pgRecReqs,recCands:pgRecCands,
+    userReqs:pgUserReqs,userEvals:pgUserEvals,userNotes:pgUserNotes
   };
-  
-  if (pages[page]) pages[page]();
+  if(pages[page]) pages[page]();
 }
 
-function setTitle(t) { g('tbTitle').textContent = t; }
-function setMC(html) { g('mc').innerHTML = html; }
+function setTitle(t){g('tbTitle').textContent=t;}
+function setMC(html){g('mc').innerHTML=html;}
 
-// ═══════════════════════════════════════════════════════════════════
-// PAGES - ADMIN
-// ═══════════════════════════════════════════════════════════════════
-function pgDash() {
+// ═══════════════════════════════════════════════════════════
+// GOOGLE SHEETS PAGE
+// ═══════════════════════════════════════════════════════════
+function pgDash(){
   setTitle('Dashboard');
-  const total = DB.requests.length;
-  const pend = DB.requests.filter(r => r.status === 'pending_approval').length;
-  const inprog = DB.requests.filter(r => r.status === 'inprog').length;
-  const hired = DB.evals.filter(e => e.hired).length;
-  
+  const total=DB.requests.length, pend=DB.requests.filter(r=>r.status==='pending_approval').length,
+        inprog=DB.requests.filter(r=>r.status==='inprog').length, hired=DB.evals.filter(e=>e.hired).length;
   updatePendBadge();
+  g('tbActs').innerHTML='';
   setMC(`
-    <div class="statsGrid">
-      <div class="statCard purple"><div class="statVal">${total}</div><div class="statLbl">Ümumi Tələb</div></div>
-      <div class="statCard yellow"><div class="statVal">${pend}</div><div class="statLbl">Gözləyən Təsdiq</div></div>
-      <div class="statCard blue"><div class="statVal">${inprog}</div><div class="statLbl">Prosesdə</div></div>
-      <div class="statCard green"><div class="statVal">${hired}</div><div class="statLbl">İşə Qəbul</div></div>
-    </div>
-    ${renderSyncBar()}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div class="card">
-        <div class="cTitle">⏳ Ən Çox Gözləyən</div>
-        ${renderPendingList()}
-      </div>
-      <div class="card">
-        <div class="cTitle">📋 Son Loglar</div>
-        ${DB.logs.slice(0, 8).map(l => `
-          <div class="logItem">
-            <div class="logDot ld${l.type}"></div>
-            <div><div class="logTxt">${l.txt}</div><div class="logTime">${l.ts}</div></div>
-          </div>
-        `).join('') || emptyState('📭', 'Log yoxdur')}
-      </div>
-    </div>
-  `);
-}
-
-function renderSyncBar() {
-  const url = getSheetsUrl();
-  return `
-    <div class="syncBar">
-      <div class="syncDot ${url ? 'ok' : ''}" id="syncDotMain"></div>
-      <span class="syncTxt">${url ? 'Sheets bağlı' : 'Sheets bağlanmayıb'}</span>
-      <button class="btn bGhost bSm" onclick="sm('mDebug')">⚙️ URL</button>
-      <button class="btn bSuccess bSm" onclick="syncToSheets(false)">🔄 Sinxronlaşdır</button>
-    </div>
-  `;
-}
-
-function renderPendingList() {
-  const pends = DB.requests.filter(r => r.status === 'pending_approval')
-    .sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0))
-    .slice(0, 6);
-  
-  if (!pends.length) return emptyState('✅', 'Gözləyən tələb yoxdur');
-  
-  return pends.map(r => {
-    const chain = getChainForReq(r);
-    const idx = (r.approvals || []).length;
-    const pu = chain[idx] ? DB.users.find(u => u.id === chain[idx].uid) : null;
-    const days = r.createdAtMs ? Math.floor((Date.now() - r.createdAtMs) / 86400000) : 0;
-    
-    return `
-      <div class="fBetween" style="padding:8px 0;border-bottom:1px solid var(--border)">
-        <div>
-          <div class="fw6" style="font-size:13px">#${r.reqId} — ${r.positionTitle}</div>
-          <div class="tMuted tSm">⏳ ${pu ? pu.name : '?'}</div>
-        </div>
+<div class="statsGrid">
+  <div class="statCard purple"><div class="statVal">${total}</div><div class="statLbl">Ümumi Tələb</div></div>
+  <div class="statCard yellow"><div class="statVal">${pend}</div><div class="statLbl">Gözləyən Təsdiq</div></div>
+  <div class="statCard blue"><div class="statVal">${inprog}</div><div class="statLbl">Prosesdə</div></div>
+  <div class="statCard green"><div class="statVal">${hired}</div><div class="statLbl">İşə Qəbul</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="card">
+    <div class="cTitle">⏳ Ən Çox Gözləyən</div>
+    ${(()=>{
+      const pends=DB.requests.filter(r=>r.status==='pending_approval')
+        .map(r=>{const ch=getChainForReq(r),idx=(r.approvals||[]).length,pu=ch[idx]?DB.users.find(u=>u.id===ch[idx].uid):null;return {...r,pendUser:pu,days:r.createdAtMs?Math.floor((Date.now()-r.createdAtMs)/86400000):0};})
+        .sort((a,b)=>b.days-a.days).slice(0,6);
+      if(!pends.length) return emptyState('✅','Gözləyən tələb yoxdur');
+      return pends.map(r=>`<div class="fBetween" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div><div class="fw6" style="font-size:13px">#${r.reqId} — ${r.positionTitle}</div>
+        <div class="tMuted tSm">⏳ ${r.pendUser?r.pendUser.name:'?'}</div></div>
         <div style="text-align:right">
-          <div style="font-size:13px;font-weight:700;color:${days > 3 ? 'var(--red)' : days > 1 ? 'var(--yellow)' : 'var(--green)'}">${days === 0 ? 'Bu gün' : days + ' gün'}</div>
+          <div style="font-size:13px;font-weight:700;color:${r.days>3?'var(--red)':r.days>1?'var(--yellow)':'var(--green)'}">${r.days===0?'Bu gün':r.days+' gün'}</div>
           <button class="btn bGhost bSm" onclick="viewReq('${r.id}')" style="margin-top:3px;padding:3px 8px">→</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+        </div></div>`).join('');
+    })()}
+  </div>
+  <div class="card">
+    <div class="cTitle">📋 Son Loglar</div>
+    ${DB.logs.slice(0,8).map(l=>`<div class="logItem"><div class="logDot ld${l.type}"></div><div><div class="logTxt">${l.txt}</div><div class="logTime">${l.ts}</div></div></div>`).join('')||emptyState('📭','Log yoxdur')}
+  </div>
+</div>`);
+  updateSyncBar();
 }
 
-function updatePendBadge() {
-  const pend = DB.requests.filter(r => r.status === 'pending_approval').length;
-  const b = g('pendBadge');
-  if (b) {
-    b.style.display = pend > 0 ? '' : 'none';
-    b.textContent = pend;
-  }
+function updatePendBadge(){
+  const pend=DB.requests.filter(r=>r.status==='pending_approval').length;
+  const b=g('pendBadge'); if(b){b.style.display=pend>0?'':'none';b.textContent=pend;}
 }
 
-function pgLogs() {
+// ═══════════════════════════════════════════════════════════
+// LOGS
+// ═══════════════════════════════════════════════════════════
+function pgLogs(){
   setTitle('Sistem Logları');
-  setMC(`
-    <div class="card">
-      <div class="cTitle">📋 Loglar (${DB.logs.length})</div>
-      ${DB.logs.length ? DB.logs.map(l => `
-        <div class="logItem">
-          <div class="logDot ld${l.type}"></div>
-          <div><div class="logTxt">${l.txt}</div><div class="logTime">${l.ts}</div></div>
-        </div>
-      `).join('') : emptyState('📭', 'Log yoxdur')}
-    </div>
-  `);
+  setMC(`<div class="card">
+    <div class="cTitle">📋 Loglar (${DB.logs.length})</div>
+    ${DB.logs.length?DB.logs.map(l=>`<div class="logItem"><div class="logDot ld${l.type}"></div><div><div class="logTxt">${l.txt}</div><div class="logTime">${l.ts}</div></div></div>`).join(''):emptyState('📭','Log yoxdur')}
+  </div>`);
 }
 
-function pgUsers() {
+// ═══════════════════════════════════════════════════════════
+// USERS
+// ═══════════════════════════════════════════════════════════
+function pgUsers(){
   setTitle('İstifadəçilər');
-  g('tbActs').innerHTML = '<button class="btn bPrimary" onclick="openAddUser()">➕ İstifadəçi Əlavə Et</button>';
-  
-  const us = DB.users.filter(u => u.role !== 'admin');
-  setMC(`
-    <div class="card">
-      <div class="cTitle">👥 İstifadəçilər (${us.length})</div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Ad Soyad</th><th>Login</th><th>Rol</th><th>BU</th><th>Şöbə</th><th>Vəzifə</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${us.length ? us.map((u, i) => `
-              <tr>
-                <td class="tMuted tSm">${i + 1}</td>
-                <td><strong>${u.name}</strong></td>
-                <td><code>${u.login}</code></td>
-                <td><span class="badge ${u.role === 'recruiter' ? 'bProg' : u.role === 'bv' ? 'bHire' : 'bPend'}">${roleLabel(u.role)}</span></td>
-                <td style="color:var(--acc2)">${u.bu || '–'}</td>
-                <td class="tMuted">${u.department || '–'}</td>
-                <td>${u.position || '–'}</td>
-                <td style="display:flex;gap:4px">
-                  <button class="btn bGhost bSm" onclick="editUser('${u.id}')">✏️</button>
-                  <button class="btn bGhost bSm" onclick="delUser('${u.id}')">🗑</button>
-                </td>
-              </tr>
-            `).join('') : '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--txt3)">İstifadəçi yoxdur</td></tr>'}
-          </tbody>
-        </table>
+  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openAddUser()">➕ İstifadəçi Əlavə Et</button>`;
+  const us=DB.users.filter(u=>u.role!=='admin');
+  setMC(`<div class="card">
+    <div class="cTitle">👥 İstifadəçilər (${us.length})</div>
+    <div class="tableWrap"><table>
+      <thead><tr><th>#</th><th>Ad Soyad</th><th>Login</th><th>Şifrə</th><th>Rol</th><th>BU</th><th>Şöbə</th><th>Vəzifə</th><th>Email</th><th></th></tr></thead>
+      <tbody>
+        ${us.length?us.map((u,i)=>`<tr>
+          <td class="tMuted tSm">${i+1}</td>
+          <td><strong>${u.name}</strong></td>
+          <td><code>${u.login}</code></td>
+          <td><code>${u.pass}</code></td>
+          <td><span class="badge ${u.role==='recruiter'?'bProg':u.role==='bv'?'bHire':'bPend'}">${roleLabel(u.role)}</span></td>
+          <td style="color:var(--acc2)">${u.bu||'–'}</td>
+          <td class="tMuted">${u.department||'–'}</td>
+          <td>${u.position||'–'}</td>
+          <td class="tMuted tSm">${u.email||'–'}</td>
+          <td style="display:flex;gap:4px">
+            <button class="btn bGhost bSm" onclick="editUser('${u.id}')">✏️</button>
+            <button class="btn bGhost bSm" onclick="delUser('${u.id}')">🗑</button>
+          </td></tr>`).join(''):'<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--txt3)">İstifadəçi yoxdur</td></tr>'}
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="cTitle">📂 BU / Şöbə Kataloqu</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--acc2);margin-bottom:8px">🏢 BU / Müəssisələr</div>
+        ${renderCatalogItems(getBuList(),'removeBu')||'<div class="tMuted tSm">Hələ BU yoxdur</div>'}
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <input id="newBuInput" type="text" placeholder="Yeni BU..." style="flex:1;padding:7px 10px;background:var(--s2);border:1.5px solid var(--border);border-radius:8px;color:var(--txt);font-family:var(--font);font-size:13px;outline:none">
+          <button class="btn bPrimary bSm" onclick="addBuCatalog()">+</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--acc2);margin-bottom:8px">🗂 Şöbələr</div>
+        ${renderCatalogItems(getDeptList(),'removeDept')||'<div class="tMuted tSm">Hələ şöbə yoxdur</div>'}
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <input id="newDeptInput" type="text" placeholder="Yeni şöbə..." style="flex:1;padding:7px 10px;background:var(--s2);border:1.5px solid var(--border);border-radius:8px;color:var(--txt);font-family:var(--font);font-size:13px;outline:none">
+          <button class="btn bPrimary bSm" onclick="addDeptCatalog()">+</button>
+        </div>
       </div>
     </div>
-  `);
+  </div>`);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// USER MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════
-function getBuList() {
-  const ex = [...new Set(DB.users.filter(u => u.bu).map(u => u.bu))];
-  return [...new Set([...(DB.buCatalog || []), ...ex])].sort();
+function renderCatalogItems(list,fn){
+  return list.map(item=>`<div class="fBetween" style="padding:6px 10px;background:var(--s2);border-radius:6px;margin-bottom:4px"><span>${item}</span><button class="btn bGhost bSm" onclick="${fn}(this.dataset.v)" data-v="${item}" style="padding:2px 8px">✕</button></div>`).join('');
 }
-
-function getDeptList() {
-  const ex = [...new Set(DB.users.filter(u => u.department).map(u => u.department))];
-  return [...new Set([...(DB.deptCatalog || []), ...ex])].sort();
+function getBuList(){ const ex=[...new Set(DB.users.filter(u=>u.bu).map(u=>u.bu))]; return [...new Set([...(DB.buCatalog||[]),...ex])].sort(); }
+function getDeptList(){ const ex=[...new Set(DB.users.filter(u=>u.department).map(u=>u.department))]; return [...new Set([...(DB.deptCatalog||[]),...ex])].sort(); }
+function buildBuSelect(sel=''){
+  const list=getBuList(),el=g('nuBu');
+  el.innerHTML=`<option value="">— Seçin —</option>${list.map(b=>`<option value="${b}" ${b===sel?'selected':''}>${b}</option>`).join('')}<option value="__new__">➕ Yeni əlavə et...</option>`;
+  const c=g('nuBuCustom'); if(sel&&!list.includes(sel)){el.value='__new__';c.style.display='';c.value=sel;}else{c.style.display='none';c.value='';}
 }
-
-function buildBuSelect(sel) {
-  const list = getBuList();
-  const el = g('nuBu');
-  el.innerHTML = '<option value="">— Seçin —</option>' + 
-    list.map(b => `<option value="${b}" ${b === sel ? 'selected' : ''}>${b}</option>`).join('') +
-    '<option value="__new__">➕ Yeni əlavə et...</option>';
-  const c = g('nuBuCustom');
-  if (sel && !list.includes(sel)) {
-    el.value = '__new__';
-    c.style.display = '';
-    c.value = sel;
-  } else {
-    c.style.display = 'none';
-  }
+function buildDeptSelect(sel=''){
+  const list=getDeptList(),el=g('nuDept');
+  el.innerHTML=`<option value="">— Seçin —</option>${list.map(d=>`<option value="${d}" ${d===sel?'selected':''}>${d}</option>`).join('')}<option value="__new__">➕ Yeni əlavə et...</option>`;
+  const c=g('nuDeptCustom'); if(sel&&!list.includes(sel)){el.value='__new__';c.style.display='';c.value=sel;}else{c.style.display='none';c.value='';}
 }
-
-function buildDeptSelect(sel) {
-  const list = getDeptList();
-  const el = g('nuDept');
-  el.innerHTML = '<option value="">— Seçin —</option>' + 
-    list.map(d => `<option value="${d}" ${d === sel ? 'selected' : ''}>${d}</option>`).join('') +
-    '<option value="__new__">➕ Yeni əlavə et...</option>';
-  const c = g('nuDeptCustom');
-  if (sel && !list.includes(sel)) {
-    el.value = '__new__';
-    c.style.display = '';
-    c.value = sel;
-  } else {
-    c.style.display = 'none';
-  }
+function onBuChange(){ const v=g('nuBu').value; g('nuBuCustom').style.display=v==='__new__'?'':'none'; if(v!=='__new__')g('nuBuCustom').value=''; }
+function onDeptChange(){ const v=g('nuDept').value; g('nuDeptCustom').style.display=v==='__new__'?'':'none'; if(v!=='__new__')g('nuDeptCustom').value=''; }
+function getSelectedBu(){ const v=g('nuBu').value; return v==='__new__'?g('nuBuCustom').value.trim():v; }
+function getSelectedDept(){ const v=g('nuDept').value; return v==='__new__'?g('nuDeptCustom').value.trim():v; }
+function saveCatalog(bu,dept){
+  if(!DB.buCatalog)DB.buCatalog=[]; if(!DB.deptCatalog)DB.deptCatalog=[];
+  if(bu&&!DB.buCatalog.includes(bu))DB.buCatalog.push(bu);
+  if(dept&&!DB.deptCatalog.includes(dept))DB.deptCatalog.push(dept);
 }
+function addBuCatalog(){ const v=g('newBuInput').value.trim(); if(!v){toast('BU adı daxil edin','er');return;} if(!DB.buCatalog)DB.buCatalog=[]; if(DB.buCatalog.includes(v)){toast('Artıq mövcuddur','er');return;} DB.buCatalog.push(v);saveLocal();toast('Əlavə edildi','ok');pgUsers(); }
+function removeBu(b){ DB.buCatalog=(DB.buCatalog||[]).filter(x=>x!==b);saveLocal();pgUsers(); }
+function addDeptCatalog(){ const v=g('newDeptInput').value.trim(); if(!v){toast('Şöbə adı daxil edin','er');return;} if(!DB.deptCatalog)DB.deptCatalog=[]; if(DB.deptCatalog.includes(v)){toast('Artıq mövcuddur','er');return;} DB.deptCatalog.push(v);saveLocal();toast('Əlavə edildi','ok');pgUsers(); }
+function removeDept(d){ DB.deptCatalog=(DB.deptCatalog||[]).filter(x=>x!==d);saveLocal();pgUsers(); }
 
-function onBuChange() {
-  g('nuBuCustom').style.display = g('nuBu').value === '__new__' ? '' : 'none';
+function openAddUser(){
+  ['nuNm','nuLg','nuPs','nuEm','nuPo','nuStruct'].forEach(id=>{const el=g(id);if(el)el.value='';});
+  g('nuRl').value='user';
+  g('mAddUserTitle').textContent='👤 İstifadəçi Əlavə Et';
+  g('mAddUserFoot').innerHTML=`<button class="btn bGhost" onclick="cm('mAddUser')">İmtina</button><button class="btn bPrimary" onclick="saveUser()">Əlavə Et ✓</button>`;
+  buildBuSelect();buildDeptSelect();
+  g('mAddUser').classList.remove('hidden');
 }
-
-function onDeptChange() {
-  g('nuDeptCustom').style.display = g('nuDept').value === '__new__' ? '' : 'none';
+function editUser(id){
+  const u=DB.users.find(x=>x.id===id);if(!u)return;
+  g('nuNm').value=u.name;g('nuLg').value=u.login;g('nuPs').value=u.pass;
+  g('nuEm').value=u.email||'';g('nuRl').value=u.role;g('nuPo').value=u.position||'';g('nuStruct').value=u.struct||'';
+  buildBuSelect(u.bu||'');buildDeptSelect(u.department||'');
+  g('mAddUserTitle').textContent='✏️ Redaktə Et';
+  g('mAddUserFoot').innerHTML=`<button class="btn bGhost" onclick="cm('mAddUser')">İmtina</button><button class="btn bPrimary" onclick="updateUser('${id}')">Yenilə ✓</button>`;
+  g('mAddUser').classList.remove('hidden');
 }
-
-function getSelectedBu() {
-  const v = g('nuBu').value;
-  return v === '__new__' ? g('nuBuCustom').value.trim() : v;
+function updateUser(id){
+  const u=DB.users.find(x=>x.id===id);if(!u)return;
+  const nm=g('nuNm').value.trim(),lg=g('nuLg').value.trim(),ps=g('nuPs').value,
+        po=g('nuPo').value.trim(),em=g('nuEm').value.trim(),bu=getSelectedBu(),dept=getSelectedDept();
+  if(!nm||!lg||!ps){toast('Ad, login, şifrə tələb olunur','er');return;}
+  if(!em){toast('Email tələb olunur','er');return;}
+  if(!po){toast('Vəzifə tələb olunur','er');return;}
+  if(!bu){toast('BU tələb olunur','er');return;}
+  if(!dept){toast('Şöbə tələb olunur','er');return;}
+  if(DB.users.find(x=>x.login===lg&&x.id!==id)){toast('Bu login mövcuddur','er');return;}
+  saveCatalog(bu,dept);
+  Object.assign(u,{name:nm,login:lg,pass:ps,email:em,role:g('nuRl').value,position:po,bu,department:dept,struct:g('nuStruct').value.trim()});
+  log(`İstifadəçi yeniləndi: ${nm}`,'B');
+  saveLocal(); save('users', u, 'update');
+  cm('mAddUser');toast('Yeniləndi','ok');pgUsers();
 }
-
-function getSelectedDept() {
-  const v = g('nuDept').value;
-  return v === '__new__' ? g('nuDeptCustom').value.trim() : v;
-}
-
-function openAddUser() {
-  ['nuNm', 'nuLg', 'nuPs', 'nuEm', 'nuPo', 'nuStruct'].forEach(id => {
-    const el = g(id);
-    if (el) el.value = '';
-  });
-  g('nuRl').value = 'user';
-  g('mAddUserTitle').textContent = '👤 İstifadəçi Əlavə Et';
-  g('mAddUserFoot').innerHTML = `
-    <button class="btn bGhost" onclick="cm('mAddUser')">İmtina</button>
-    <button class="btn bPrimary" onclick="saveUser()">Əlavə Et ✓</button>
-  `;
-  buildBuSelect();
-  buildDeptSelect();
-  sm('mAddUser');
-}
-
-function editUser(id) {
-  const u = DB.users.find(x => x.id === id);
-  if (!u) return;
-  
-  g('nuNm').value = u.name;
-  g('nuLg').value = u.login;
-  g('nuPs').value = u.pass;
-  g('nuEm').value = u.email || '';
-  g('nuRl').value = u.role;
-  g('nuPo').value = u.position || '';
-  g('nuStruct').value = u.struct || '';
-  
-  buildBuSelect(u.bu || '');
-  buildDeptSelect(u.department || '');
-  
-  g('mAddUserTitle').textContent = '✏️ Redaktə Et';
-  g('mAddUserFoot').innerHTML = `
-    <button class="btn bGhost" onclick="cm('mAddUser')">İmtina</button>
-    <button class="btn bPrimary" onclick="updateUser('${id}')">Yenilə ✓</button>
-  `;
-  sm('mAddUser');
-}
-
-function saveUser() {
-  const nm = g('nuNm').value.trim();
-  const lg = g('nuLg').value.trim();
-  const ps = g('nuPs').value;
-  const em = g('nuEm').value.trim();
-  const po = g('nuPo').value.trim();
-  const bu = getSelectedBu();
-  const dept = getSelectedDept();
-  
-  if (!nm || !lg || !ps) { toast('Ad, login, şifrə tələb olunur', 'er'); return; }
-  if (!em) { toast('Email tələb olunur', 'er'); return; }
-  if (!po) { toast('Vəzifə tələb olunur', 'er'); return; }
-  if (!bu) { toast('BU tələb olunur', 'er'); return; }
-  if (!dept) { toast('Şöbə tələb olunur', 'er'); return; }
-  if (DB.users.find(x => x.login === lg)) { toast('Bu login mövcuddur', 'er'); return; }
-  
-  // Save to catalog
-  if (!DB.buCatalog.includes(bu)) DB.buCatalog.push(bu);
-  if (!DB.deptCatalog.includes(dept)) DB.deptCatalog.push(dept);
-  
-  const nu = {
-    id: uid(), name: nm, login: lg, pass: ps, email: em,
-    role: g('nuRl').value, position: po, bu: bu, department: dept,
-    struct: g('nuStruct').value.trim(), createdAt: now()
-  };
-  
+function saveUser(){
+  const nm=g('nuNm').value.trim(),lg=g('nuLg').value.trim(),ps=g('nuPs').value,
+        po=g('nuPo').value.trim(),em=g('nuEm').value.trim(),bu=getSelectedBu(),dept=getSelectedDept();
+  if(!nm||!lg||!ps){toast('Ad, login, şifrə tələb olunur','er');return;}
+  if(!em){toast('Email tələb olunur','er');return;}
+  if(!po){toast('Vəzifə tələb olunur','er');return;}
+  if(!bu){toast('BU tələb olunur','er');return;}
+  if(!dept){toast('Şöbə tələb olunur','er');return;}
+  if(DB.users.find(x=>x.login===lg)){toast('Bu login mövcuddur','er');return;}
+  saveCatalog(bu,dept);
+  const nu={id:uid(),name:nm,login:lg,pass:ps,email:em,role:g('nuRl').value,position:po,bu,department:dept,struct:g('nuStruct').value.trim()};
   DB.users.push(nu);
-  saveLocal();
-  sheetsWrite('users', nu, 'add');
-  
-  cm('mAddUser');
-  toast(nm + ' əlavə edildi', 'ok');
-  pgUsers();
+  log(`Yeni istifadəçi: ${nm} (${roleLabel(nu.role)})`,'P');
+  saveLocal(); save('users', nu, 'add');
+  cm('mAddUser');toast(`${nm} əlavə edildi`,'ok');pgUsers();
+}
+function delUser(id){
+  if(!confirm('Bu istifadəçini silmək istəyirsiniz?'))return;
+  const u=DB.users.find(x=>x.id===id);
+  DB.users=DB.users.filter(x=>x.id!==id);
+  log(`İstifadəçi silindi: ${u?.name}`,'R');
+  saveLocal(); save('users', id, 'delete');
+  toast('Silindi','ok');pgUsers();
 }
 
-function updateUser(id) {
-  const u = DB.users.find(x => x.id === id);
-  if (!u) return;
-  
-  const nm = g('nuNm').value.trim();
-  const lg = g('nuLg').value.trim();
-  const ps = g('nuPs').value;
-  const em = g('nuEm').value.trim();
-  const po = g('nuPo').value.trim();
-  const bu = getSelectedBu();
-  const dept = getSelectedDept();
-  
-  if (!nm || !lg || !ps) { toast('Ad, login, şifrə tələb olunur', 'er'); return; }
-  if (DB.users.find(x => x.login === lg && x.id !== id)) { toast('Bu login mövcuddur', 'er'); return; }
-  
-  if (!DB.buCatalog.includes(bu)) DB.buCatalog.push(bu);
-  if (!DB.deptCatalog.includes(dept)) DB.deptCatalog.push(dept);
-  
-  Object.assign(u, {
-    name: nm, login: lg, pass: ps, email: em,
-    role: g('nuRl').value, position: po, bu: bu, department: dept,
-    struct: g('nuStruct').value.trim()
-  });
-  
-  saveLocal();
-  sheetsWrite('users', u, 'update');
-  
-  cm('mAddUser');
-  toast('Yeniləndi', 'ok');
-  pgUsers();
+// ═══════════════════════════════════════════════════════════
+// CHAINS
+// ═══════════════════════════════════════════════════════════
+function initChains(){
+  if(!DB.chains)DB.chains=[];
+  if(DB.chain&&DB.chain.length&&DB.chains.length===0){DB.chains.push({id:uid(),name:'Ümumi',steps:DB.chain});DB.chain=[];saveLocal();}
+}
+function getChainForReq(req){
+  initChains();
+  if(req.chainCatId){const cat=DB.chains.find(c=>c.id===req.chainCatId);if(cat)return cat.steps;}
+  const cat=DB.chains.find(c=>c.name&&req.department&&c.name.toLowerCase()===req.department.toLowerCase());
+  if(cat)return cat.steps;
+  return DB.chains.length>0?DB.chains[0].steps:[];
 }
 
-function delUser(id) {
-  if (!confirm('Bu istifadəçini silmək istəyirsiniz?')) return;
-  
-  DB.users = DB.users.filter(x => x.id !== id);
-  saveLocal();
-  sheetsWrite('users', id, 'delete');
-  
-  toast('Silindi', 'ok');
-  pgUsers();
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// CHAIN MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════
-function getChainForReq(req) {
-  if (!DB.chains) DB.chains = [];
-  if (req.chainCatId) {
-    const cat = DB.chains.find(c => c.id === req.chainCatId);
-    if (cat) return cat.steps;
-  }
-  const cat = DB.chains.find(c => c.name && req.department && c.name.toLowerCase() === req.department.toLowerCase());
-  if (cat) return cat.steps;
-  return DB.chains.length > 0 ? DB.chains[0].steps : [];
-}
-
-function pgChain() {
+function pgChain(){
+  initChains();
   setTitle('Təsdiq Kateqoriyaları');
-  g('tbActs').innerHTML = '<button class="btn bPrimary" onclick="openNewCatModal()">➕ Yeni Kateqoriya</button>';
-  
+  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openNewCatModal()">➕ Yeni Kateqoriya</button>`;
   setMC(`
-    <div class="alert aInfo">Hər departament üçün ayrıca təsdiq zənciri yaradın.</div>
-    ${DB.chains.length === 0 ? '<div class="card">' + emptyState('⚙️', 'Kateqoriya yoxdur') + '</div>' : ''}
-    ${DB.chains.map(cat => `
-      <div class="card" style="margin-bottom:14px">
-        <div class="fBetween" style="margin-bottom:16px">
-          <div class="cTitle" style="margin:0">📂 ${cat.name}</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn bGhost bSm" onclick="openEditCatModal('${cat.id}')">✏️</button>
-            <button class="btn bGhost bSm" onclick="deleteCat('${cat.id}')">🗑</button>
-          </div>
-        </div>
-        <div class="chainVis">
-          <div class="chainStep">
-            <div class="chainCirc" style="background:rgba(200,200,255,.1);border-color:var(--acc2);color:var(--acc2)">📝</div>
-            <div class="chainLbl">Yaradan</div>
-          </div>
-          ${[1, 2, 3].map(s => {
-            const step = cat.steps.find(x => x.order === s);
-            const user = step ? DB.users.find(u => u.id === step.uid) : null;
-            return `
-              <div class="chainArr ${user ? 'chainArrD' : ''}"></div>
-              <div class="chainStep">
-                <div class="chainCirc ${user ? 'ccDone' : 'ccWait'}">${user ? '✓' : '?'}</div>
-                <div class="chainLbl">${s}. Təsdiqçi<br><small class="tMuted">${user ? user.name : '–'}</small></div>
-              </div>
-            `;
-          }).join('')}
-          <div class="chainArr ${cat.steps.length > 0 ? 'chainArrD' : ''}"></div>
-          <div class="chainStep">
-            <div class="chainCirc" style="background:rgba(124,109,250,.15);border-color:var(--acc);color:var(--acc2)">🎯</div>
-            <div class="chainLbl">Recruiter</div>
-          </div>
-        </div>
-      </div>
-    `).join('')}
-  `);
-}
-
-let _editCatId = null;
-
-function openNewCatModal() {
-  _editCatId = null;
-  g('mAppr').querySelector('.mTitle').textContent = '➕ Yeni Kateqoriya';
-  buildCatModalBody(null);
-  sm('mAppr');
-}
-
-function openEditCatModal(catId) {
-  _editCatId = catId;
-  const cat = DB.chains.find(c => c.id === catId);
-  g('mAppr').querySelector('.mTitle').textContent = '✏️ ' + cat.name;
-  buildCatModalBody(cat);
-  sm('mAppr');
-}
-
-function buildCatModalBody(cat) {
-  const users = DB.users.filter(u => u.role !== 'admin');
-  g('mApprBody').innerHTML = `
-    <div class="fGroup">
-      <label>Kateqoriya Adı *</label>
-      <input id="catName" value="${cat ? cat.name : ''}" placeholder="HR, Maliyyə, İT...">
+<div class="alert aInfo">Hər departament üçün ayrıca təsdiq zənciri yaradın.</div>
+${DB.chains.length===0?'<div class="card">'+emptyState('⚙️','Kateqoriya yoxdur')+'</div>':''}
+${DB.chains.map(cat=>`<div class="card" style="margin-bottom:14px">
+  <div class="fBetween" style="margin-bottom:16px">
+    <div class="cTitle" style="margin:0">📂 ${cat.name}</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn bGhost bSm" onclick="openEditCatModal('${cat.id}')">✏️</button>
+      <button class="btn bGhost bSm" onclick="deleteCat('${cat.id}')">🗑</button>
     </div>
-    ${[1, 2, 3].map(s => {
-      const step = cat ? cat.steps.find(x => x.order === s) : null;
-      return `
-        <div class="fGroup">
-          <label>${s}. Təsdiqçi</label>
-          <select id="cat_ap_${s}">
-            <option value="">— Seçilməyib —</option>
-            ${users.map(u => `<option value="${u.id}" ${step && step.uid === u.id ? 'selected' : ''}>${u.name} — ${u.position || ''}</option>`).join('')}
-          </select>
-        </div>
-      `;
-    }).join('')}
-  `;
+  </div>
+  <div class="chainVis">
+    <div class="chainStep"><div class="chainCirc" style="background:rgba(200,200,255,.1);border-color:var(--acc2);color:var(--acc2)">📝</div><div class="chainLbl">Yaradan</div></div>
+    ${[1,2,3].map(s=>{const step=cat.steps.find(x=>x.order===s),user=step?DB.users.find(u=>u.id===step.uid):null;
+      return `<div class="chainArr ${user?'chainArrD':''}"></div><div class="chainStep"><div class="chainCirc ${user?'ccDone':'ccWait'}">${user?'✓':'?'}</div><div class="chainLbl">${s}. Təsdiqçi<br><small class="tMuted">${user?user.name:'–'}</small></div></div>`;}).join('')}
+    <div class="chainArr ${cat.steps.length>0?'chainArrD':''}"></div>
+    <div class="chainStep"><div class="chainCirc" style="background:rgba(124,109,250,.15);border-color:var(--acc);color:var(--acc2)">🎯</div><div class="chainLbl">Recruiter</div></div>
+  </div>
+</div>`).join('')}`);
 }
 
-function saveApprovers() {
-  const name = g('catName').value.trim();
-  if (!name) { toast('Ad tələb olunur', 'er'); return; }
-  
-  const steps = [];
-  [1, 2, 3].forEach(s => {
-    const v = g('cat_ap_' + s).value;
-    if (v) steps.push({order: s, uid: v});
-  });
-  
-  if (_editCatId) {
-    const cat = DB.chains.find(c => c.id === _editCatId);
-    cat.name = name;
-    cat.steps = steps;
-    sheetsWrite('chains', cat, 'update');
+let _editCatId=null;
+function openNewCatModal(){ _editCatId=null; g('mAppr').querySelector('.mTitle').textContent='➕ Yeni Kateqoriya'; buildCatModalBody(null); g('mAppr').classList.remove('hidden'); }
+function openEditCatModal(catId){ _editCatId=catId; const cat=DB.chains.find(c=>c.id===catId); g('mAppr').querySelector('.mTitle').textContent=`✏️ ${cat.name}`; buildCatModalBody(cat); g('mAppr').classList.remove('hidden'); }
+function buildCatModalBody(cat){
+  const users=DB.users.filter(u=>u.role!=='admin');
+  g('mApprBody').innerHTML=`
+<div class="fGroup"><label>Kateqoriya Adı *</label><input id="catName" value="${cat?cat.name:''}" placeholder="HR, Maliyyə, İT..."></div>
+${[1,2,3].map(s=>{const step=cat?cat.steps.find(x=>x.order===s):null;return `<div class="fGroup"><label>${s}. Təsdiqçi</label><select id="cat_ap_${s}"><option value="">— Seçilməyib —</option>${users.map(u=>`<option value="${u.id}" ${step&&step.uid===u.id?'selected':''}>${u.name} — ${u.position||''}</option>`).join('')}</select></div>`;}).join('')}`;
+}
+function saveApprovers(){
+  const name=g('catName').value.trim(); if(!name){toast('Ad tələb olunur','er');return;}
+  const steps=[]; [1,2,3].forEach(s=>{const v=g('cat_ap_'+s).value; if(v)steps.push({order:s,uid:v});});
+  if(_editCatId){
+    const cat=DB.chains.find(c=>c.id===_editCatId);
+    cat.name=name;cat.steps=steps;
+    log(`Kateqoriya yeniləndi: ${name}`,'P');
+    saveLocal(); save('chains', cat, 'update');
   } else {
-    const newCat = {id: uid(), name: name, steps: steps};
+    const newCat={id:uid(),name,steps};
     DB.chains.push(newCat);
-    sheetsWrite('chains', newCat, 'add');
+    log(`Yeni kateqoriya: ${name}`,'P');
+    saveLocal(); save('chains', newCat, 'add');
   }
-  
-  saveLocal();
-  cm('mAppr');
-  toast('Yadda saxlandı', 'ok');
-  pgChain();
+  cm('mAppr');toast('Yadda saxlandı','ok');pgChain();
+}
+function deleteCat(catId){
+  const cat=DB.chains.find(c=>c.id===catId);
+  if(!confirm(`"${cat?.name}" silinsin?`))return;
+  DB.chains=DB.chains.filter(c=>c.id!==catId);
+  log(`Kateqoriya silindi: ${cat?.name}`,'R');
+  saveLocal(); save('chains', catId, 'delete');
+  toast('Silindi','ok');pgChain();
 }
 
-function deleteCat(catId) {
-  const cat = DB.chains.find(c => c.id === catId);
-  if (!confirm('"' + cat.name + '" silinsin?')) return;
-  
-  DB.chains = DB.chains.filter(c => c.id !== catId);
-  saveLocal();
-  sheetsWrite('chains', catId, 'delete');
-  
-  toast('Silindi', 'ok');
-  pgChain();
-}
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // REQUEST FORM
-// ═══════════════════════════════════════════════════════════════════
-const LANGS = [['English', 'İngilis'], ['Russian', 'Rus'], ['Azeri', 'Azəri']];
-const COMPS = ['Word', 'Excel', 'Outlook'];
+// ═══════════════════════════════════════════════════════════
+const LANGS=[['English','İngilis'],['Russian','Rus'],['Azeri','Azəri']];
+const COMPS=['Word','Excel','Outlook'];
+const LVL=['','Başlanğıc','Orta','Əla'];
 
-function openReqForm(data) {
-  g('mReqBody').innerHTML = buildReqForm(data);
-  g('mReqFoot').innerHTML = `
-    <button class="btn bGhost" onclick="cm('mReq')">İmtina</button>
-    <button class="btn bPrimary" onclick="submitReq(${data ? "'" + data.id + "'" : 'null'})">${data ? 'Yenilə' : 'Göndər ✓'}</button>
-  `;
-  sm('mReq');
+function openReqForm(data=null){
+  g('mReqBody').innerHTML=buildReqForm(data);
+  g('mReqFoot').innerHTML=`<button class="btn bGhost" onclick="cm('mReq')">İmtina</button><button class="btn bPrimary" onclick="submitReq(${data?`'${data.id}'`:null})">${data?'Yenilə':'Göndər ✓'}</button>`;
+  g('mReq').classList.remove('hidden');
 }
-
-function buildReqForm(d) {
-  d = d || {};
+function buildReqForm(d){
+  d=d||{};
   return `
-    <div class="fSec">
-      <div class="fSecTitle">Tələb Edən</div>
-      <div class="fRow">
-        <div class="fGroup"><label>Ad Soyad</label><input id="ri_nm" value="${CU.name}" readonly style="opacity:.7"></div>
-        <div class="fGroup"><label>Tarix</label><input id="ri_dt" type="date" value="${d.issuerDate || td()}"></div>
-      </div>
+<div class="fSec"><div class="fSecTitle">Tələb Edən</div>
+  <div class="fRow">
+    <div class="fGroup"><label>Ad Soyad</label><input id="ri_nm" value="${CU.name}" readonly style="opacity:.7"></div>
+    <div class="fGroup"><label>Tarix</label><input id="ri_dt" type="date" value="${d.issuerDate||td()}"></div>
+  </div>
+</div>
+<div class="fSec"><div class="fSecTitle">Vakansiyanın Səbəbi</div>
+  <div class="fGroup"><textarea id="ri_reason" placeholder="Səbəbi qeyd edin...">${d.reason||''}</textarea></div>
+</div>
+<div class="fSec"><div class="fSecTitle">Vəzifə Məlumatı</div>
+  <div class="fRow">
+    <div class="fGroup"><label>Departament *</label><input id="ri_dept" value="${d.department||(CU.role!=='admin'?CU.department||'':'')}" placeholder="HR, Maliyyə..."></div>
+    <div class="fGroup"><label>Dərəcə</label><input id="ri_grade" value="${d.grade||''}" placeholder="A1, B2..."></div>
+  </div>
+  <div class="fRow">
+    <div class="fGroup"><label>Vəzifənin Adı *</label><input id="ri_pos" value="${d.positionTitle||''}" placeholder="Mühasib, Menecer..."></div>
+    <div class="fGroup"><label>Əmək Haqqı</label><input id="ri_sal" value="${d.salary||''}" placeholder="1000–1500 AZN"></div>
+  </div>
+  <div class="fRow">
+    <div class="fGroup"><label>Başlama Tarixi</label><input id="ri_sdate" type="date" value="${d.startDate||''}"></div>
+    <div class="fGroup"><label>Təsdiq Zənciri *</label>
+      <select id="ri_cat">
+        <option value="">— Seçin —</option>
+        ${(DB.chains||[]).map(c=>`<option value="${c.id}" ${d.chainCatId===c.id?'selected':''}>${c.name}</option>`).join('')}
+      </select>
     </div>
-    <div class="fSec">
-      <div class="fSecTitle">Vakansiyanın Səbəbi</div>
-      <div class="fGroup"><textarea id="ri_reason" placeholder="Səbəbi qeyd edin...">${d.reason || ''}</textarea></div>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Vəzifə Məlumatı</div>
-      <div class="fRow">
-        <div class="fGroup"><label>Departament *</label><input id="ri_dept" value="${d.department || (CU.role !== 'admin' ? CU.department || '' : '')}" placeholder="HR, Maliyyə..."></div>
-        <div class="fGroup"><label>Dərəcə</label><input id="ri_grade" value="${d.grade || ''}" placeholder="A1, B2..."></div>
-      </div>
-      <div class="fRow">
-        <div class="fGroup"><label>Vəzifənin Adı *</label><input id="ri_pos" value="${d.positionTitle || ''}" placeholder="Mühasib, Menecer..."></div>
-        <div class="fGroup"><label>Əmək Haqqı</label><input id="ri_sal" value="${d.salary || ''}" placeholder="1000–1500 AZN"></div>
-      </div>
-      <div class="fRow">
-        <div class="fGroup"><label>Başlama Tarixi</label><input id="ri_sdate" type="date" value="${d.startDate || ''}"></div>
-        <div class="fGroup"><label>Təsdiq Zənciri *</label>
-          <select id="ri_cat">
-            <option value="">— Seçin —</option>
-            ${(DB.chains || []).map(c => `<option value="${c.id}" ${d.chainCatId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Dil Bilikləri</div>
-      <table class="sTable">
-        <thead><tr><th>Dil</th><th>Başlanğıc</th><th>Orta</th><th>Əla</th></tr></thead>
-        <tbody>
-          ${LANGS.map(([en, az], i) => `
-            <tr>
-              <td>${en} / ${az}</td>
-              ${[1, 2, 3].map(v => `<td class="rcell"><input type="radio" name="rl_${i}" value="${v}" ${d.langs && d.langs[i] === v ? 'checked' : ''}></td>`).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Kompüter Bilikləri</div>
-      <table class="sTable">
-        <thead><tr><th>Proqram</th><th>Başlanğıc</th><th>Orta</th><th>Əla</th></tr></thead>
-        <tbody>
-          ${COMPS.map((c, i) => `
-            <tr>
-              <td>${c}</td>
-              ${[1, 2, 3].map(v => `<td class="rcell"><input type="radio" name="rc_${i}" value="${v}" ${d.comp && d.comp[i] === v ? 'checked' : ''}></td>`).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">İşin Təsviri</div>
-      <div class="fGroup">
-        <textarea id="ri_job" style="min-height:100px" placeholder="Vəzifə öhdəlikləri, tələblər...">${d.jobDesc || ''}</textarea>
-      </div>
-    </div>
-  `;
+  </div>
+</div>
+<div class="fSec"><div class="fSecTitle">Dil Bilikləri</div>
+  <table class="sTable">
+    <thead><tr><th>Dil</th><th>Başlanğıc</th><th>Orta</th><th>Əla</th></tr></thead>
+    <tbody>
+      ${LANGS.map(([en,az],i)=>`<tr><td>${en} / ${az}</td>${[1,2,3].map(v=>`<td class="rcell"><input type="radio" name="rl_${i}" value="${v}" ${d.langs&&d.langs[i]===v?'checked':''}></td>`).join('')}</tr>`).join('')}
+      <tr><td><input id="ri_langOth" value="${d.langOther||''}" placeholder="Digər" style="width:100%"></td>${[1,2,3].map(v=>`<td class="rcell"><input type="radio" name="rl_3" value="${v}"></td>`).join('')}</tr>
+    </tbody>
+  </table>
+</div>
+<div class="fSec"><div class="fSecTitle">Kompüter Bilikləri</div>
+  <table class="sTable">
+    <thead><tr><th>Proqram</th><th>Başlanğıc</th><th>Orta</th><th>Əla</th></tr></thead>
+    <tbody>
+      ${COMPS.map((c,i)=>`<tr><td>${c}</td>${[1,2,3].map(v=>`<td class="rcell"><input type="radio" name="rc_${i}" value="${v}" ${d.comp&&d.comp[i]===v?'checked':''}></td>`).join('')}</tr>`).join('')}
+      <tr><td><input id="ri_compOth" value="${d.compOther||''}" placeholder="Digər" style="width:100%"></td>${[1,2,3].map(v=>`<td class="rcell"><input type="radio" name="rc_3" value="${v}"></td>`).join('')}</tr>
+    </tbody>
+  </table>
+</div>
+<div class="fSec"><div class="fSecTitle">İşin Təsviri (minimum 160 hərf)</div>
+  <div class="fGroup">
+    <textarea id="ri_job" style="min-height:100px" placeholder="Vəzifə öhdəlikləri, tələblər..." oninput="jdCount(this)">${d.jobDesc||''}</textarea>
+    <div id="jdCnt" style="font-size:11px;margin-top:3px;text-align:right;color:var(--txt3)">${(d.jobDesc||'').length} / 160 hərf</div>
+  </div>
+</div>`;
 }
-
-function collectReqForm() {
-  return {
-    issuerName: g('ri_nm').value,
-    issuerDate: g('ri_dt').value,
-    reason: g('ri_reason').value,
-    department: g('ri_dept').value,
-    grade: g('ri_grade').value,
-    positionTitle: g('ri_pos').value,
-    salary: g('ri_sal').value,
-    startDate: g('ri_sdate').value,
-    chainCatId: g('ri_cat').value || null,
-    langs: [0, 1, 2].map(i => {
-      const r = document.querySelector('input[name="rl_' + i + '"]:checked');
-      return r ? parseInt(r.value) : null;
-    }),
-    comp: [0, 1, 2].map(i => {
-      const r = document.querySelector('input[name="rc_' + i + '"]:checked');
-      return r ? parseInt(r.value) : null;
-    }),
-    jobDesc: g('ri_job').value
-  };
+function collectReqForm(){
+  return{issuerName:g('ri_nm').value,issuerDate:g('ri_dt').value,reason:g('ri_reason').value,
+    department:g('ri_dept').value,grade:g('ri_grade').value,positionTitle:g('ri_pos').value,
+    salary:g('ri_sal').value,startDate:g('ri_sdate').value,chainCatId:g('ri_cat').value||null,
+    langs:[0,1,2,3].map(i=>{const r=document.querySelector(`input[name="rl_${i}"]:checked`);return r?parseInt(r.value):null;}),
+    langOther:g('ri_langOth').value,
+    comp:[0,1,2,3].map(i=>{const r=document.querySelector(`input[name="rc_${i}"]:checked`);return r?parseInt(r.value):null;}),
+    compOther:g('ri_compOth').value,jobDesc:g('ri_job').value};
 }
-
-function submitReq(editId) {
-  const data = collectReqForm();
-  if (!data.positionTitle.trim()) { toast('Vəzifənin adı tələb olunur', 'er'); return; }
-  if (!data.department.trim()) { toast('Departament tələb olunur', 'er'); return; }
-  
-  if (editId) {
-    const req = DB.requests.find(r => r.id === editId);
-    Object.assign(req, data, {updatedAt: now()});
-    saveLocal();
-    sheetsWrite('requests', req, 'update');
-    toast('Yeniləndi', 'ok');
+function submitReq(editId=null){
+  const data=collectReqForm();
+  if(!data.positionTitle.trim()){toast('Vəzifənin adı tələb olunur','er');return;}
+  if(!data.department.trim()){toast('Departament tələb olunur','er');return;}
+  if(data.jobDesc.trim().length<160){toast(`İşin təsviri min 160 hərf (${data.jobDesc.trim().length})`, 'er');return;}
+  if(editId){
+    const req=DB.requests.find(r=>r.id===editId);
+    Object.assign(req,data,{updatedAt:now()});
+    log(`Tələb yeniləndi: ${data.positionTitle}`,'B');
+    saveLocal(); save('requests', req, 'update');
+    toast('Yeniləndi','ok');
   } else {
-    const chain = data.chainCatId ? DB.chains.find(c => c.id === data.chainCatId)?.steps || [] : [];
-    const req = {
-      id: uid(),
-      ...data,
-      reqId: DB.nextReqId++,
-      createdById: CU.id,
-      createdByName: CU.name,
-      createdAt: now(),
-      createdAtMs: nowMs(),
-      status: chain.length > 0 ? 'pending_approval' : 'inprog',
-      approvals: [],
-      candidates: []
-    };
+    initChains();
+    const chain=data.chainCatId?DB.chains.find(c=>c.id===data.chainCatId)?.steps||[]:[];
+    const req={id:uid(),...data,reqId:DB.nextReqId++,createdById:CU.id,createdByName:CU.name,
+      createdAt:now(),createdAtMs:nowMs(),status:chain.length>0?'pending_approval':'inprog',approvals:[],candidates:[]};
     DB.requests.push(req);
-    saveLocal();
-    sheetsWrite('requests', req, 'add');
-    toast('Tələb göndərildi!', 'ok');
+    log(`Yeni tələb: ${data.positionTitle} (${CU.name})`,'B');
+    saveLocal(); save('requests', req, 'add');
+    toast('Tələb göndərildi!','ok');
   }
-  
-  cm('mReq');
-  navRefresh();
+  cm('mReq');navRefresh();
 }
-
-function navRefresh() {
-  if (CU.role === 'admin') pgAllReqs();
-  else if (CU.role === 'recruiter') pgRecReqs();
+function navRefresh(){
+  if(CU.role==='admin')pgAllReqs();
+  else if(CU.role==='recruiter')pgRecReqs();
   else pgUserReqs();
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // VIEW REQUEST
-// ═══════════════════════════════════════════════════════════════════
-function viewReq(reqId) {
-  const req = DB.requests.find(r => r.id === reqId);
-  if (!req) return;
-  
-  const chain = getChainForReq(req);
-  const idx = (req.approvals || []).length;
-  const isMyTurn = req.status === 'pending_approval' && chain[idx] && chain[idx].uid === CU.id;
-  const pendUser = req.status === 'pending_approval' && chain[idx] ? DB.users.find(u => u.id === chain[idx].uid) : null;
-  
-  g('mReqBody').innerHTML = `
-    <div class="alert aInfo">
-      ID: <code>#${req.reqId}</code> · Status: <span class="badge ${sb(req.status)}">${st(req.status)}</span>
-      ${pendUser ? `<div style="color:var(--yellow);font-size:12px">⏳ Kimdə: <strong>${pendUser.name}</strong></div>` : ''}
-    </div>
-    ${req.status === 'rejected' ? `<div class="alert aDanger">❌ ${req.rejectedBy || ''}: ${req.rejectReason || '–'}</div>` : ''}
-    <div class="fSec">
-      <div class="fSecTitle">Tələb Edən</div>
-      <div class="fRow">
-        <div><div class="tMuted tSm">Ad Soyad</div><div class="fw6">${req.createdByName}</div></div>
-        <div><div class="tMuted tSm">Tarix</div><div class="fw6">${req.issuerDate || req.createdAt}</div></div>
-      </div>
-    </div>
-    <div class="fSec"><div class="fSecTitle">Səbəb</div><div>${req.reason || '–'}</div></div>
-    <div class="fSec">
-      <div class="fSecTitle">Vəzifə</div>
-      <div class="fRow">
-        <div><div class="tMuted tSm">Departament</div><div class="fw6">${req.department || '–'}</div></div>
-        <div><div class="tMuted tSm">Dərəcə</div><div class="fw6">${req.grade || '–'}</div></div>
-      </div>
-      <div class="fRow mt8">
-        <div><div class="tMuted tSm">Vəzifə</div><div class="fw6">${req.positionTitle}</div></div>
-        <div><div class="tMuted tSm">Əmək Haqqı</div><div class="fw6">${req.salary || '–'}</div></div>
-      </div>
-    </div>
-    <div class="fSec"><div class="fSecTitle">İşin Təsviri</div><div>${req.jobDesc || '–'}</div></div>
-  `;
-  
-  let foot = '<button class="btn bGhost" onclick="cm(\'mReq\')">Bağla</button>';
-  
-  if (isMyTurn) {
-    foot += `<button class="btn bDanger" onclick="rejectReq('${req.id}');cm('mReq')">✕ Rədd</button>`;
-    foot += `<button class="btn bSuccess" onclick="approveReq('${req.id}');cm('mReq')">✓ Təsdiqlə</button>`;
+// ═══════════════════════════════════════════════════════════
+function viewReq(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  const chain=getChainForReq(req),idx=(req.approvals||[]).length;
+  const isMyTurn=req.status==='pending_approval'&&chain[idx]&&chain[idx].uid===CU.id;
+  const pendUser=req.status==='pending_approval'&&chain[idx]?DB.users.find(u=>u.id===chain[idx].uid):null;
+  g('mReqBody').innerHTML=`
+<div class="alert aInfo">ID: <code>#${req.reqId||req.id.slice(-5)}</code> · Status: <span class="badge ${sb(req.status)}">${st(req.status)}</span>
+  ${pendUser?`<div style="color:var(--yellow);font-size:12px">⏳ Kimdə: <strong>${pendUser.name}</strong></div>`:''}
+</div>
+${req.status==='rejected'?`<div class="alert aDanger">❌ ${req.rejectedBy||''}: ${req.rejectReason||'–'}</div>`:''}
+<div class="fSec"><div class="fSecTitle">Tələb Edən</div>
+  <div class="fRow"><div><div class="tMuted tSm">Ad Soyad</div><div class="fw6">${req.createdByName}</div></div><div><div class="tMuted tSm">Tarix</div><div class="fw6">${req.issuerDate||req.createdAt}</div></div></div>
+</div>
+<div class="fSec"><div class="fSecTitle">Səbəb</div><div>${req.reason||'–'}</div></div>
+<div class="fSec"><div class="fSecTitle">Vəzifə</div>
+  <div class="fRow"><div><div class="tMuted tSm">Departament</div><div class="fw6">${req.department||'–'}</div></div><div><div class="tMuted tSm">Dərəcə</div><div class="fw6">${req.grade||'–'}</div></div></div>
+  <div class="fRow mt8"><div><div class="tMuted tSm">Vəzifə</div><div class="fw6">${req.positionTitle}</div></div><div><div class="tMuted tSm">Əmək Haqqı</div><div class="fw6">${req.salary||'–'}</div></div></div>
+</div>
+<div class="fSec"><div class="fSecTitle">İşin Təsviri</div><div>${req.jobDesc||'–'}</div></div>
+<div class="fSec"><div class="fSecTitle">Təsdiq Tarixi</div>
+  ${(req.approvals||[]).length?req.approvals.map(a=>`<div class="logItem"><div class="logDot ldG"></div><div><div class="logTxt">${a.name}</div><div class="logTime">${a.time}</div></div></div>`).join(''):'<div class="tMuted">Hələ yoxdur</div>'}
+</div>`;
+  let foot=`<button class="btn bGhost" onclick="cm('mReq')">Bağla</button>`;
+  if(isMyTurn){foot+=`<button class="btn bDanger" onclick="rejectReq('${req.id}');cm('mReq')">✕ Rədd</button><button class="btn bSuccess" onclick="approveReq('${req.id}');cm('mReq')">✓ Təsdiqlə</button>`;}
+  if(CU.role==='recruiter'&&req.status==='pending_approval'){foot+=`<button class="btn bDanger" onclick="recruiterReject('${req.id}');cm('mReq')">✕ Rədd</button><button class="btn bWarning" onclick="recruiterAdvance('${req.id}');cm('mReq')">⏩ İrəlilə</button>`;}
+  if(CU.role==='admin'){
+    if(req.status==='pending_approval'){foot+=`<button class="btn bWarning" onclick="adminAdvanceReq('${req.id}');cm('mReq')">⏩</button><button class="btn bSuccess" onclick="adminApproveAll('${req.id}')">✓✓ Tam</button><button class="btn bDanger" onclick="adminRejectReq('${req.id}');cm('mReq')">✕</button>`;}
+    foot+=`<button class="btn bGhost" style="color:var(--red);margin-left:auto" onclick="if(confirm('Silmək?')){adminDeleteReq('${req.id}');cm('mReq')}">🗑</button>`;
   }
-  
-  if (CU.role === 'admin') {
-    if (req.status === 'pending_approval') {
-      foot += `<button class="btn bWarning" onclick="adminAdvanceReq('${req.id}');cm('mReq')">⏩</button>`;
-      foot += `<button class="btn bSuccess" onclick="adminApproveAll('${req.id}');cm('mReq')">✓✓ Tam</button>`;
-      foot += `<button class="btn bDanger" onclick="adminRejectReq('${req.id}');cm('mReq')">✕</button>`;
-    }
-    foot += `<button class="btn bGhost" style="color:var(--red);margin-left:auto" onclick="if(confirm('Silmək?')){adminDeleteReq('${req.id}');cm('mReq')}">🗑</button>`;
-  }
-  
-  if ((CU.role === 'recruiter' || CU.role === 'admin') && (req.status === 'inprog' || req.status === 'approved')) {
-    foot += `<button class="btn bPrimary" onclick="cm('mReq');openEvalForm('${req.id}')">➕ Namizəd</button>`;
-  }
-  
-  g('mReqFoot').innerHTML = foot;
-  sm('mReq');
+  if((CU.role==='recruiter'||CU.role==='admin')&&(req.status==='inprog'||req.status==='approved')){foot+=`<button class="btn bPrimary" onclick="cm('mReq');openEvalForm('${req.id}')">➕ Namizəd</button>`;}
+  g('mReqFoot').innerHTML=foot;
+  g('mReq').classList.remove('hidden');
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // APPROVALS
-// ═══════════════════════════════════════════════════════════════════
-function approveReq(reqId) {
-  const req = DB.requests.find(r => r.id === reqId);
-  if (!req) return;
-  
-  const chain = getChainForReq(req);
-  const idx = (req.approvals || []).length;
-  if (!chain[idx] || chain[idx].uid !== CU.id) { toast('Sıra sizə deyil', 'er'); return; }
-  
-  req.approvals = req.approvals || [];
-  req.approvals.push({uid: CU.id, name: CU.name, time: now(), action: 'approved'});
-  
-  if (req.approvals.length >= chain.length) {
-    req.status = 'inprog';
-    toast('Tam təsdiqləndi!', 'ok');
-  } else {
-    toast('Təsdiq etdiniz!', 'ok');
-  }
-  
-  saveLocal();
-  sheetsWrite('requests', req, 'update');
-  buildNav();
-  go(activePage);
+// ═══════════════════════════════════════════════════════════
+function approveReq(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  const chain=getChainForReq(req),idx=(req.approvals||[]).length;
+  if(!chain[idx]||chain[idx].uid!==CU.id){toast('Sıra sizə deyil','er');return;}
+  req.approvals=req.approvals||[];
+  req.approvals.push({uid:CU.id,name:CU.name,time:now(),action:'approved'});
+  log(`Tələb təsdiqləndi: ${req.positionTitle} (${CU.name})`,'G');
+  if(req.approvals.length>=chain.length){req.status='inprog';toast('Tam təsdiqləndi!','ok');}
+  else toast('Təsdiq etdiniz!','ok');
+  saveLocal(); save('requests', req, 'update');
+  buildNav();go(activePage);
+}
+function rejectReq(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  const reason=prompt('Rədd etmə səbəbi:');
+  req.status='rejected';req.rejectedBy=CU.name;req.rejectedAt=now();req.rejectReason=reason||'';
+  log(`Tələb rədd edildi: ${req.positionTitle} (${CU.name})`,'R');
+  saveLocal(); save('requests', req, 'update');
+  toast('Rədd edildi','ok');go(activePage);
+}
+function adminAdvanceReq(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  const chain=getChainForReq(req),idx=(req.approvals||[]).length;
+  if(idx>=chain.length){toast('Zəncir bitib','er');return;}
+  req.approvals.push({uid:'admin',name:'Admin (məcburi)',time:now(),action:'admin_advance'});
+  if(req.approvals.length>=chain.length){req.status='inprog';}
+  saveLocal(); save('requests', req, 'update');
+  toast('İrəlilədi','ok');pgAllReqs();
+}
+function adminApproveAll(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  const chain=getChainForReq(req);
+  req.approvals=chain.map(s=>({uid:s.uid,name:DB.users.find(u=>u.id===s.uid)?.name||'Admin',time:now(),action:'admin_full'}));
+  req.status='inprog';
+  log(`Admin tam təsdiqləndi: #${req.reqId}`,'G');
+  saveLocal(); save('requests', req, 'update');
+  toast('Tam təsdiqləndi!','ok');cm('mReq');pgAllReqs();
+}
+function adminRejectReq(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  const reason=prompt('Rədd etmə səbəbi:');
+  req.status='rejected';req.rejectedBy='Admin';req.rejectedAt=now();req.rejectReason=reason||'';
+  saveLocal(); save('requests', req, 'update');
+  toast('Rədd edildi','ok');pgAllReqs();
+}
+function adminDeleteReq(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);
+  DB.requests=DB.requests.filter(r=>r.id!==reqId);
+  log(`Admin sildi: #${req?.reqId}`,'R');
+  saveLocal(); save('requests', reqId, 'delete');
+  toast('Silindi','ok');pgAllReqs();
+}
+function recruiterAdvance(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  const chain=getChainForReq(req),idx=(req.approvals||[]).length;
+  if(idx>=chain.length){toast('Zəncir bitib','er');return;}
+  req.approvals=req.approvals||[];
+  req.approvals.push({uid:CU.id,name:`Recruiter: ${CU.name}`,time:now(),action:'rec_advance'});
+  if(req.approvals.length>=chain.length){req.status='inprog';toast('Tam irəlilədi!','ok');}
+  else toast('Növbəti addıma göndərildi','ok');
+  saveLocal(); save('requests', req, 'update');
+  pgRecReqs();
+}
+function recruiterReject(reqId){
+  const req=DB.requests.find(r=>r.id===reqId);if(!req)return;
+  const reason=prompt('Rədd səbəbi:');
+  req.status='rejected';req.rejectedBy=`Recruiter: ${CU.name}`;req.rejectedAt=now();req.rejectReason=reason||'';
+  saveLocal(); save('requests', req, 'update');
+  toast('Rədd edildi','ok');pgRecReqs();
 }
 
-function rejectReq(reqId) {
-  const req = DB.requests.find(r => r.id === reqId);
-  if (!req) return;
-  
-  const reason = prompt('Rədd etmə səbəbi:');
-  req.status = 'rejected';
-  req.rejectedBy = CU.name;
-  req.rejectedAt = now();
-  req.rejectReason = reason || '';
-  
-  saveLocal();
-  sheetsWrite('requests', req, 'update');
-  toast('Rədd edildi', 'ok');
-  go(activePage);
-}
-
-function adminAdvanceReq(reqId) {
-  const req = DB.requests.find(r => r.id === reqId);
-  if (!req) return;
-  
-  const chain = getChainForReq(req);
-  const idx = (req.approvals || []).length;
-  if (idx >= chain.length) { toast('Zəncir bitib', 'er'); return; }
-  
-  req.approvals.push({uid: 'admin', name: 'Admin (məcburi)', time: now(), action: 'admin_advance'});
-  if (req.approvals.length >= chain.length) req.status = 'inprog';
-  
-  saveLocal();
-  sheetsWrite('requests', req, 'update');
-  toast('İrəlilədi', 'ok');
-  pgAllReqs();
-}
-
-function adminApproveAll(reqId) {
-  const req = DB.requests.find(r => r.id === reqId);
-  if (!req) return;
-  
-  const chain = getChainForReq(req);
-  req.approvals = chain.map(s => ({
-    uid: s.uid,
-    name: DB.users.find(u => u.id === s.uid)?.name || 'Admin',
-    time: now(),
-    action: 'admin_full'
-  }));
-  req.status = 'inprog';
-  
-  saveLocal();
-  sheetsWrite('requests', req, 'update');
-  toast('Tam təsdiqləndi!', 'ok');
-  cm('mReq');
-  pgAllReqs();
-}
-
-function adminRejectReq(reqId) {
-  const req = DB.requests.find(r => r.id === reqId);
-  if (!req) return;
-  
-  const reason = prompt('Rədd etmə səbəbi:');
-  req.status = 'rejected';
-  req.rejectedBy = 'Admin';
-  req.rejectedAt = now();
-  req.rejectReason = reason || '';
-  
-  saveLocal();
-  sheetsWrite('requests', req, 'update');
-  toast('Rədd edildi', 'ok');
-  pgAllReqs();
-}
-
-function adminDeleteReq(reqId) {
-  DB.requests = DB.requests.filter(r => r.id !== reqId);
-  saveLocal();
-  sheetsWrite('requests', reqId, 'delete');
-  toast('Silindi', 'ok');
-  pgAllReqs();
-}
-
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // ALL REQUESTS
-// ═══════════════════════════════════════════════════════════════════
-function pgAllReqs() {
+// ═══════════════════════════════════════════════════════════
+function pgAllReqs(){
   setTitle('Bütün Tələblər');
-  setMC(`
-    <div class="card">
-      <div class="cTitle">📄 Tələblər (${DB.requests.length})</div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr><th>ID</th><th>Vəzifə</th><th>Departament</th><th>Yaradan</th><th>Kimdə</th><th>Status</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${DB.requests.length ? DB.requests.slice().reverse().map(r => {
-              const chain = getChainForReq(r);
-              const idx = (r.approvals || []).length;
-              const pu = r.status === 'pending_approval' && chain[idx] ? DB.users.find(u => u.id === chain[idx].uid) : null;
-              
-              return `
-                <tr>
-                  <td><code style="color:var(--acc2)">#${r.reqId}</code></td>
-                  <td><strong>${r.positionTitle}</strong></td>
-                  <td>${r.department || '–'}</td>
-                  <td>${r.createdByName}</td>
-                  <td>${pu ? '<span style="color:var(--yellow)">⏳ ' + pu.name + '</span>' : '–'}</td>
-                  <td><span class="badge ${sb(r.status)}">${st(r.status)}</span></td>
-                  <td style="display:flex;gap:4px;flex-wrap:wrap">
-                    <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
-                    ${r.status === 'pending_approval' ? `
-                      <button class="btn bWarning bSm" onclick="adminAdvanceReq('${r.id}')">⏩</button>
-                      <button class="btn bSuccess bSm" onclick="adminApproveAll('${r.id}')">✓✓</button>
-                      <button class="btn bDanger bSm" onclick="adminRejectReq('${r.id}')">✕</button>
-                    ` : ''}
-                    <button class="btn bGhost bSm" onclick="adminDeleteReq('${r.id}')" style="color:var(--red)">🗑</button>
-                  </td>
-                </tr>
-              `;
-            }).join('') : '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--txt3)">Tələb yoxdur</td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `);
+  setMC(`<div class="card">
+    <div class="cTitle">📄 Tələblər (${DB.requests.length})</div>
+    <div class="tableWrap"><table>
+      <thead><tr><th>ID</th><th>Vəzifə</th><th>Departament</th><th>Kateqoriya</th><th>Yaradan</th><th>Kimdə</th><th>Müddət</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        ${DB.requests.length?DB.requests.slice().reverse().map(r=>{
+          const ch=getChainForReq(r),idx=(r.approvals||[]).length;
+          const pu=r.status==='pending_approval'&&ch[idx]?DB.users.find(u=>u.id===ch[idx].uid):null;
+          return `<tr>
+            <td><code style="color:var(--acc2)">#${r.reqId||r.id.slice(-5)}</code></td>
+            <td><strong>${r.positionTitle}</strong></td>
+            <td>${r.department||'–'}</td>
+            <td class="tMuted tSm">${DB.chains?.find(c=>c.id===r.chainCatId)?.name||'–'}</td>
+            <td>${r.createdByName}</td>
+            <td>${pu?`<span style="color:var(--yellow)">⏳ ${pu.name}</span>`:'–'}</td>
+            <td style="font-size:12px">${r.status==='pending_approval'&&r.createdAtMs?elapsed(r.createdAtMs):'–'}</td>
+            <td><span class="badge ${sb(r.status)}">${st(r.status)}</span></td>
+            <td style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
+              ${r.status==='pending_approval'?`<button class="btn bWarning bSm" onclick="adminAdvanceReq('${r.id}')">⏩</button><button class="btn bSuccess bSm" onclick="adminApproveAll('${r.id}')">✓✓</button><button class="btn bDanger bSm" onclick="adminRejectReq('${r.id}')">✕</button>`:''}
+              <button class="btn bGhost bSm" onclick="adminDeleteReq('${r.id}')" style="color:var(--red)">🗑</button>
+            </td></tr>`;}).join(''):'<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--txt3)">Tələb yoxdur</td></tr>'}
+      </tbody>
+    </table></div>
+  </div>`);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// EVALUATION
-// ═══════════════════════════════════════════════════════════════════
-const ECRIT = [
-  {az: 'Akademik nailiyyətlər', en: 'Academic'},
-  {az: 'Qərar vermə', en: 'Decision'},
-  {az: 'İş Təcrübəsi', en: 'Experience'},
-  {az: 'Ünsiyyət bacarığı', en: 'Communication'},
-  {az: 'Təşkilati uyğunluq', en: 'Fit'},
-  {az: 'Təşəbbüskarlıq', en: 'Initiative'},
-  {az: 'İşə həvəsi', en: 'Enthusiasm'},
-  {az: 'Yekun', en: 'Overall'}
+// ═══════════════════════════════════════════════════════════
+// EVAL
+// ═══════════════════════════════════════════════════════════
+const ECRIT=[
+  {az:'Akademik nailiyyətlər',en:'Academic Brilliance'},
+  {az:'Qərar vermə / Mühakimə',en:'Decision Making'},
+  {az:'İş Təcrübəsi',en:'Work Experience'},
+  {az:'Ünsiyyət bacarığı',en:'Communication Skills'},
+  {az:'Təşkilati uyğunluq',en:'Organizational Fit'},
+  {az:'Təşəbbüskarlıq',en:'Initiative'},
+  {az:'İşə həvəsi',en:'Enthusiasm'},
+  {az:'Yekun Dəyərləndirmə',en:'Overall Evaluation'},
 ];
-const RVALS = ['excellent', 'good', 'average', 'poor'];
-const RLBL = {excellent: 'Əla', good: 'Yaxşı', average: 'Orta', poor: 'Zəif'};
+const RVALS=['excellent','good','average','poor'];
+const RLBL={excellent:'Əla',good:'Yaxşı',average:'Orta',poor:'Zəif'};
 
-function openEvalForm(requestId) {
-  const req = DB.requests.find(r => r.id === requestId);
-  const users = DB.users.filter(u => u.role === 'user' || u.role === 'bv');
-  
-  g('mEvalBody').innerHTML = `
-    <div class="alert aInfo">Tələb: <strong>${req ? req.positionTitle : ''}</strong></div>
-    <input type="hidden" id="ev_reqId" value="${requestId}">
-    <div class="fSec">
-      <div class="fSecTitle">Əsas Məlumat</div>
-      <div class="fRow">
-        <div class="fGroup"><label>Namizədin Adı *</label><input id="ev_cname" placeholder="Ad Soyad"></div>
-        <div class="fGroup"><label>Müsahibə Tarixi *</label><input id="ev_date" type="date" value="${td()}"></div>
-      </div>
-      <div class="fGroup"><label>Müraciət vəzifəsi</label><input id="ev_app" value="${req ? req.positionTitle : ''}"></div>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Dəyərləndirmə</div>
-      <table class="eTable">
-        <thead><tr><th>Meyar</th><th>Əla</th><th>Yaxşı</th><th>Orta</th><th>Zəif</th></tr></thead>
-        <tbody>
-          ${ECRIT.map((c, i) => `
-            <tr>
-              <td>${c.az}</td>
-              ${RVALS.map(v => `<td class="rcell"><input type="radio" name="ec_${i}" value="${v}"></td>`).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Əlavə Məlumat</div>
-      <div class="fRow">
-        <div class="fGroup"><label>Əmək haqqı gözlənti</label><input id="ev_sal" placeholder="2000 AZN"></div>
-        <div class="fGroup"><label>Başlaya biləcəyi tarix</label><input id="ev_avail" type="date"></div>
-      </div>
-      <div class="fGroup"><label>Tövsiyyə</label><textarea id="ev_recs"></textarea></div>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Qərar</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px">
-          <input type="radio" name="ev_res" value="suitable"> ✅ Uyğundur
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px">
-          <input type="radio" name="ev_res" value="other_position"> 🔄 Digər vakansiya
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px">
-          <input type="radio" name="ev_res" value="not_suitable"> ❌ Uyğun deyil
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px">
-          <input type="radio" name="ev_res" value="blacklist"> ⛔ Qara Siyahı
-        </label>
-      </div>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Şöbə Rəhbərinə Təhkim Et</div>
-      <div class="fGroup">
-        <label>Şöbə Rəhbəri seçin</label>
-        <select id="ev_lm">
-          <option value="">— Seçin (ixtiyari) —</option>
-          ${users.map(u => `<option value="${u.id}">${u.name} — ${u.bu || ''}/${u.department || ''}</option>`).join('')}
-        </select>
-      </div>
-    </div>
-  `;
-  
-  g('mEvalFoot').innerHTML = `
-    <button class="btn bGhost" onclick="cm('mEval')">İmtina</button>
-    <button class="btn bPrimary" onclick="submitEval()">Yadda Saxla ✓</button>
-  `;
-  sm('mEval');
+function openEvalForm(requestId){
+  const req=DB.requests.find(r=>r.id===requestId);
+  const users=DB.users.filter(u=>u.role==='user'||u.role==='bv');
+  g('mEvalBody').innerHTML=`
+<div class="alert aInfo">Tələb: <strong>${req?req.positionTitle:''}</strong></div>
+<input type="hidden" id="ev_reqId" value="${requestId}">
+<div class="fSec"><div class="fSecTitle">Əsas Məlumat</div>
+  <div class="fRow">
+    <div class="fGroup"><label>Namizədin Adı *</label><input id="ev_cname" placeholder="Ad Soyad"></div>
+    <div class="fGroup"><label>Müsahibə Tarixi *</label><input id="ev_date" type="date" value="${td()}"></div>
+  </div>
+  <div class="fRow">
+    <div class="fGroup"><label>Müsahibəçi</label><input id="ev_iname" value="${CU.name}" readonly style="opacity:.7"></div>
+    <div class="fGroup"><label>Vəzifəsi</label><input id="ev_ipos" value="${CU.position||''}"></div>
+  </div>
+  <div class="fGroup"><label>Müraciyət vəzifəsi</label><input id="ev_app" value="${req?req.positionTitle:''}"></div>
+</div>
+<div class="fSec"><div class="fSecTitle">Dəyərləndirmə</div>
+  <table class="eTable">
+    <thead><tr><th>Meyar</th><th>Əla</th><th>Yaxşı</th><th>Orta</th><th>Zəif</th></tr></thead>
+    <tbody>${ECRIT.map((c,i)=>`<tr><td>${c.az}<br><small class="tMuted">${c.en}</small></td>${RVALS.map(v=>`<td class="rcell"><input type="radio" name="ec_${i}" value="${v}"></td>`).join('')}</tr>`).join('')}</tbody>
+  </table>
+</div>
+<div class="fSec"><div class="fSecTitle">Əmək Haqqı & Qeydlər</div>
+  <div class="fRow">
+    <div class="fGroup"><label>Əmək haqqı gözlənti</label><input id="ev_sal" placeholder="2000 AZN"></div>
+    <div class="fGroup"><label>Başlaya biləcəyi tarix</label><input id="ev_avail" type="date"></div>
+  </div>
+  <div class="fGroup"><label>Tövsiyyə</label><textarea id="ev_recs"></textarea></div>
+  <div class="fGroup"><label>Əlavə qeydlər</label><textarea id="ev_add"></textarea></div>
+</div>
+<div class="fSec"><div class="fSecTitle">Qərar</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px"><input type="radio" name="ev_res" value="suitable"> ✅ Uyğundur</label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px"><input type="radio" name="ev_res" value="other_position"> 🔄 Digər vakansiya</label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px"><input type="radio" name="ev_res" value="not_suitable"> ❌ Uyğun deyil</label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px"><input type="radio" name="ev_res" value="blacklist"> ⛔ Qara Siyahı</label>
+  </div>
+</div>
+<div class="fSec"><div class="fSecTitle">Şöbə Rəhbərinə Təhkim Et</div>
+  <div class="fGroup"><label>Şöbə Rəhbəri seçin</label>
+    <select id="ev_lm"><option value="">— Seçin (ixtiyari) —</option>${users.map(u=>`<option value="${u.id}">${u.name} — ${u.bu||''}/${u.department||''}</option>`).join('')}</select>
+  </div>
+</div>`;
+  g('mEvalFoot').innerHTML=`<button class="btn bGhost" onclick="cm('mEval')">İmtina</button><button class="btn bPrimary" onclick="submitEval()">Yadda Saxla ✓</button>`;
+  g('mEval').classList.remove('hidden');
 }
 
-function submitEval() {
-  const reqId = g('ev_reqId').value;
-  const cname = g('ev_cname').value.trim();
-  
-  if (!cname) { toast('Namizədin adı tələb olunur', 'er'); return; }
-  
-  const ratings = ECRIT.map((_, i) => {
-    const r = document.querySelector('input[name="ec_' + i + '"]:checked');
-    return r ? r.value : null;
-  });
-  
-  const res = document.querySelector('input[name="ev_res"]:checked');
-  const lmId = g('ev_lm').value;
-  
-  const ev = {
-    id: uid(),
-    requestId: reqId,
-    createdById: CU.id,
-    createdByName: CU.name,
-    candidateName: cname,
-    interviewDate: g('ev_date').value,
-    interviewerName: CU.name,
-    interviewerPosition: CU.position || '',
-    applyPosition: g('ev_app').value,
-    ratings: ratings,
-    salaryExp: g('ev_sal').value,
-    availDate: g('ev_avail').value,
-    recs: g('ev_recs').value,
-    recommendation: res ? res.value : null,
-    recruiterFormFilled: true,
-    recruiterFilledAt: now(),
-    lineManagerId: lmId || null,
-    lmFormFilled: false,
-    createdAt: now()
-  };
-  
+function submitEval(){
+  const reqId=g('ev_reqId').value,cname=g('ev_cname').value.trim();
+  if(!cname){toast('Namizədin adı tələb olunur','er');return;}
+  const ratings=ECRIT.map((_,i)=>{const r=document.querySelector(`input[name="ec_${i}"]:checked`);return r?r.value:null;});
+  const res=document.querySelector('input[name="ev_res"]:checked');
+  const lmId=g('ev_lm').value;
+  const ev={id:uid(),requestId:reqId,createdById:CU.id,createdByName:CU.name,
+    candidateName:cname,interviewDate:g('ev_date').value,
+    interviewerName:g('ev_iname').value,interviewerPosition:g('ev_ipos').value,applyPosition:g('ev_app').value,
+    ratings,salaryExp:g('ev_sal').value,availDate:g('ev_avail').value,
+    recs:g('ev_recs').value,recommendation:res?res.value:null,
+    additionalComments:g('ev_add').value,
+    recruiterFormFilled:true,recruiterFilledAt:now(),
+    lineManagerId:lmId||null,lmFormFilled:false,lmRatings:null,lmRecommendation:null,
+    lmRecs:'',lmSalaryExp:'',lmAdditionalComments:'',lmFilledAt:null,lineManagerApproved:false,
+    recruiterApproved:false,ceoAssigned:null,ceoApproved:false,hired:false,createdAt:now()};
   DB.evals.push(ev);
-  
-  const req = DB.requests.find(r => r.id === reqId);
-  if (req) {
-    req.candidates = req.candidates || [];
-    req.candidates.push(ev.id);
-    saveLocal();
-    sheetsWrite('requests', req, 'update');
-  }
-  
-  saveLocal();
-  sheetsWrite('evals', ev, 'add');
-  
-  cm('mEval');
-  toast('Dəyərləndirmə yadda saxlandı!', 'ok');
-  
-  if (CU.role === 'recruiter') pgRecCands();
+  const req=DB.requests.find(r=>r.id===reqId);
+  if(req){req.candidates=req.candidates||[];req.candidates.push(ev.id); saveLocal(); save('requests', req, 'update');}
+  log(`Dəyərləndirmə: ${cname} (${CU.name})`,'B');
+  if(lmId){const lm=DB.users.find(u=>u.id===lmId);if(lm)log(`Form ${lm.name}-ə göndərildi`,'Y');}
+  saveLocal(); save('evals', ev, 'add');
+  cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');
+  if(CU.role==='recruiter')pgRecCands();
 }
 
-function viewEval(evalId) {
-  const ev = DB.evals.find(e => e.id === evalId);
-  if (!ev) return;
-  
-  const req = DB.requests.find(r => r.id === ev.requestId);
-  
-  g('mViewEvalBody').innerHTML = `
-    <div class="alert aInfo">Tələb: <strong>${req ? req.positionTitle : '–'}</strong></div>
-    ${ev.hired ? '<div class="alert aSuccess">🎉 Bu namizəd işə qəbul edilib!</div>' : ''}
-    <div class="fSec">
-      <div class="fSecTitle">Əsas Məlumat</div>
-      <div class="fRow">
-        <div><div class="tMuted tSm">Namizəd</div><div class="fw6">${ev.candidateName}</div></div>
-        <div><div class="tMuted tSm">Tarix</div><div class="fw6">${ev.interviewDate}</div></div>
-      </div>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Dəyərləndirmə</div>
-      <table class="eTable">
-        <thead><tr><th>Meyar</th><th>Nəticə</th></tr></thead>
-        <tbody>
-          ${ECRIT.map((c, i) => `
-            <tr>
-              <td>${c.az}</td>
-              <td>${ev.ratings && ev.ratings[i] ? '<span class="badge ' + rbRating(ev.ratings[i]) + '">' + RLBL[ev.ratings[i]] + '</span>' : '–'}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div class="fSec">
-      <div class="fSecTitle">Qərar</div>
-      <span class="badge ${rb(ev.recommendation)}" style="font-size:13px;padding:6px 12px">${rt(ev.recommendation)}</span>
-      ${ev.hired ? '<span class="badge bHire" style="font-size:13px;padding:6px 12px;margin-left:8px">🎉 İşə Qəbul</span>' : ''}
-    </div>
-  `;
-  
-  sm('mViewEval');
+function viewEval(evalId){
+  const ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
+  const req=DB.requests.find(r=>r.id===ev.requestId);
+  const lmUser=ev.lineManagerId?DB.users.find(u=>u.id===ev.lineManagerId):null;
+  g('mViewEvalBody').innerHTML=`
+<div class="alert aInfo">Tələb: <strong>${req?req.positionTitle:'–'}</strong></div>
+${ev.hired?'<div class="alert aSuccess">🎉 Bu namizəd işə qəbul edilib!</div>':''}
+<div class="fSec"><div class="fSecTitle">Əsas Məlumat</div>
+  <div class="fRow"><div><div class="tMuted tSm">Namizəd</div><div class="fw6">${ev.candidateName}</div></div><div><div class="tMuted tSm">Tarix</div><div class="fw6">${ev.interviewDate}</div></div></div>
+</div>
+<div class="fSec"><div class="fSecTitle">Recruiter Dəyərləndirməsi</div>
+  <table class="eTable"><thead><tr><th>Meyar</th><th>Nəticə</th></tr></thead><tbody>
+    ${ECRIT.map((c,i)=>`<tr><td>${c.az}</td><td>${ev.ratings&&ev.ratings[i]?`<span class="badge ${rbRating(ev.ratings[i])}">${RLBL[ev.ratings[i]]}</span>`:'–'}</td></tr>`).join('')}
+  </tbody></table>
+</div>
+${ev.lmFormFilled?`<div class="fSec"><div class="fSecTitle">Şöbə Rəhbəri Dəyərləndirməsi (${lmUser?.name||'–'})</div>
+  <table class="eTable"><thead><tr><th>Meyar</th><th>Nəticə</th></tr></thead><tbody>
+    ${ECRIT.map((c,i)=>`<tr><td>${c.az}</td><td>${ev.lmRatings&&ev.lmRatings[i]?`<span class="badge ${rbRating(ev.lmRatings[i])}">${RLBL[ev.lmRatings[i]]}</span>`:'–'}</td></tr>`).join('')}
+  </tbody></table>
+  <div class="mt8"><div class="tMuted tSm">LM Qərarı</div><span class="badge ${rb(ev.lmRecommendation)}">${rt(ev.lmRecommendation)}</span></div>
+</div>`:''}
+<div class="fSec"><div class="fSecTitle">Qərar</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <span class="badge ${rb(ev.recommendation)}" style="font-size:13px;padding:6px 12px">${rt(ev.recommendation)}</span>
+    ${ev.hired?'<span class="badge bHire" style="font-size:13px;padding:6px 12px">🎉 İşə Qəbul</span>':''}
+  </div>
+</div>`;
+  g('mViewEval').classList.remove('hidden');
 }
 
-function rbRating(r) {
-  return r === 'excellent' ? 'bAppr' : r === 'good' ? 'bProg' : r === 'average' ? 'bPend' : 'bRej';
-}
+function rbRating(r){return r==='excellent'?'bAppr':r==='good'?'bProg':r==='average'?'bPend':r==='poor'?'bRej':'';}
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // RECRUITER PAGES
-// ═══════════════════════════════════════════════════════════════════
-function pgRecDash() {
+// ═══════════════════════════════════════════════════════════
+function pgRecDash(){
   setTitle('Recruiter Dashboard');
-  g('tbActs').innerHTML = '<button class="btn bPrimary" onclick="openReqForm()">➕ Yeni Tələb</button>';
-  
-  const readyReqs = DB.requests.filter(r => r.status === 'inprog');
-  const myEv = DB.evals.filter(e => e.createdById === CU.id);
-  
+  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openReqForm()">➕ Yeni Tələb</button>`;
+  const readyReqs=DB.requests.filter(r=>r.status==='inprog');
+  const pendReqs=DB.requests.filter(r=>r.status==='pending_approval');
+  const myEv=DB.evals.filter(e=>e.createdById===CU.id);
   setMC(`
-    <div class="statsGrid">
-      <div class="statCard blue"><div class="statVal">${readyReqs.length}</div><div class="statLbl">Hazır Tələb</div></div>
-      <div class="statCard purple"><div class="statVal">${myEv.length}</div><div class="statLbl">Mənim Dəyərləndirmələrim</div></div>
-      <div class="statCard green"><div class="statVal">${myEv.filter(e => e.hired).length}</div><div class="statLbl">İşə Qəbul</div></div>
-    </div>
-    <div class="card">
-      <div class="cTitle">✅ Namizəd Əlavə Etmək Üçün Hazır</div>
-      ${readyReqs.length ? `
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>ID</th><th>Vəzifə</th><th>Departament</th><th></th></tr></thead>
-            <tbody>
-              ${readyReqs.map(r => `
-                <tr>
-                  <td><code style="color:var(--acc2)">#${r.reqId}</code></td>
-                  <td><strong>${r.positionTitle}</strong></td>
-                  <td>${r.department || '–'}</td>
-                  <td>
-                    <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
-                    <button class="btn bPrimary bSm" onclick="openEvalForm('${r.id}')">➕ Namizəd</button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      ` : emptyState('📭', 'Hazır tələb yoxdur')}
-    </div>
-  `);
+<div class="statsGrid">
+  <div class="statCard blue"><div class="statVal">${readyReqs.length}</div><div class="statLbl">Namizəd Əlavə Etmək Üçün Hazır</div></div>
+  <div class="statCard yellow"><div class="statVal">${pendReqs.length}</div><div class="statLbl">Təsdiqdə</div></div>
+  <div class="statCard purple"><div class="statVal">${myEv.length}</div><div class="statLbl">Mənim Dəyərləndirmələrim</div></div>
+  <div class="statCard green"><div class="statVal">${myEv.filter(e=>e.hired).length}</div><div class="statLbl">İşə Qəbul</div></div>
+</div>
+<div class="card">
+  <div class="cTitle">✅ Namizəd Əlavə Etmək Üçün Hazır</div>
+  ${readyReqs.length?`<div class="tableWrap"><table>
+    <thead><tr><th>ID</th><th>Vəzifə</th><th>Departament</th><th>Yaradan</th><th>Namizəd</th><th></th></tr></thead>
+    <tbody>${readyReqs.map(r=>`<tr>
+      <td><code style="color:var(--acc2)">#${r.reqId||r.id.slice(-5)}</code></td>
+      <td><strong>${r.positionTitle}</strong></td><td>${r.department||'–'}</td>
+      <td>${r.createdByName}</td><td>${(r.candidates||[]).length}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
+        <button class="btn bPrimary bSm" onclick="openEvalForm('${r.id}')">➕ Namizəd</button>
+      </td></tr>`).join('')}</tbody>
+  </table></div>`:emptyState('📭','Hazır tələb yoxdur')}
+</div>`);
 }
 
-function pgRecReqs() {
+function pgRecReqs(){
   setTitle('İşçi Tələbləri');
-  g('tbActs').innerHTML = '<button class="btn bPrimary" onclick="openReqForm()">➕ Yeni Tələb</button>';
-  
-  const reqs = DB.requests.slice().reverse();
-  setMC(`
-    <div class="card">
-      <div class="cTitle">📄 Tələblər (${DB.requests.length})</div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr><th>ID</th><th>Vəzifə</th><th>Dep.</th><th>Status</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${reqs.length ? reqs.map(r => `
-              <tr>
-                <td><code style="color:var(--acc2)">#${r.reqId}</code></td>
-                <td><strong>${r.positionTitle}</strong></td>
-                <td>${r.department || '–'}</td>
-                <td><span class="badge ${sb(r.status)}">${st(r.status)}</span></td>
-                <td>
-                  <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
-                  ${r.status === 'inprog' ? `<button class="btn bPrimary bSm" onclick="openEvalForm('${r.id}')">➕</button>` : ''}
-                </td>
-              </tr>
-            `).join('') : '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--txt3)">Tələb yoxdur</td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `);
+  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openReqForm()">➕ Yeni Tələb</button>`;
+  const reqs=DB.requests.slice().reverse();
+  setMC(`<div class="card">
+    <div class="cTitle">📄 Tələblər (${DB.requests.length})</div>
+    <div class="tableWrap"><table>
+      <thead><tr><th>ID</th><th>Vəzifə</th><th>Dep.</th><th>Yaradan</th><th>Status</th><th>Kimdə</th><th>Namizəd</th><th></th></tr></thead>
+      <tbody>${reqs.map(r=>{
+        const ch=getChainForReq(r),idx=(r.approvals||[]).length;
+        const pu=r.status==='pending_approval'&&ch[idx]?DB.users.find(u=>u.id===ch[idx].uid):null;
+        const isReady=r.status==='inprog';
+        return `<tr style="${isReady?'background:rgba(62,207,142,.04)':''}">
+          <td><code style="color:var(--acc2)">#${r.reqId||r.id.slice(-5)}</code></td>
+          <td><strong>${r.positionTitle}</strong></td>
+          <td>${r.department||'–'}</td><td>${r.createdByName}</td>
+          <td><span class="badge ${sb(r.status)}">${st(r.status)}</span></td>
+          <td style="font-size:12px">${r.status==='pending_approval'?`<span style="color:var(--yellow)">⏳ ${pu?pu.name:'–'}</span>`:r.status==='inprog'?'<span style="color:var(--green)">✅</span>':'–'}</td>
+          <td>${(r.candidates||[]).length}</td>
+          <td style="display:flex;gap:4px">
+            <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
+            ${isReady?`<button class="btn bPrimary bSm" onclick="openEvalForm('${r.id}')">➕</button>`:''}
+          </td></tr>`;}).join('')||'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--txt3)">Tələb yoxdur</td></tr>'}
+      </tbody>
+    </table></div>
+  </div>`);
 }
 
-function pgRecCands() {
+function pgRecCands(){
   setTitle('Namizədlər');
-  const evs = DB.evals.filter(e => e.createdById === CU.id);
-  
-  setMC(`
-    <div class="card">
-      <div class="cTitle">🎯 Mənim Namizədlərim (${evs.length})</div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr><th>Namizəd</th><th>Vəzifə</th><th>Tarix</th><th>Qərar</th><th>Status</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${evs.length ? evs.map(e => {
-              const req = DB.requests.find(r => r.id === e.requestId);
-              return `
-                <tr>
-                  <td><strong>${e.candidateName}</strong></td>
-                  <td>${req ? req.positionTitle : '–'}</td>
-                  <td>${e.interviewDate}</td>
-                  <td><span class="badge ${rb(e.recommendation)}">${rt(e.recommendation)}</span></td>
-                  <td>${e.hired ? '<span class="badge bHire">İşə Qəbul</span>' : '<span class="badge bPend">Davam edir</span>'}</td>
-                  <td>
-                    <button class="btn bGhost bSm" onclick="viewEval('${e.id}')">👁</button>
-                  </td>
-                </tr>
-              `;
-            }).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--txt3)">Namizəd yoxdur</td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `);
+  const evs=DB.evals.filter(e=>e.createdById===CU.id);
+  setMC(`<div class="card">
+    <div class="cTitle">🎯 Mənim Namizədlərim (${evs.length})</div>
+    <div class="tableWrap"><table>
+      <thead><tr><th>Namizəd</th><th>Vəzifə</th><th>Tarix</th><th>Qərar</th><th>R.✓</th><th>LM.✓</th><th>Status</th><th></th></tr></thead>
+      <tbody>${evs.length?evs.map(e=>{
+        const req=DB.requests.find(r=>r.id===e.requestId);
+        const canHire=e.recruiterApproved&&e.lineManagerApproved&&!e.hired;
+        return `<tr>
+          <td><strong>${e.candidateName}</strong></td>
+          <td>${req?req.positionTitle:'–'}</td>
+          <td>${e.interviewDate}</td>
+          <td><span class="badge ${rb(e.recommendation)}">${rt(e.recommendation)}</span></td>
+          <td>${e.recruiterApproved?'✅':'–'}</td>
+          <td>${e.lineManagerId?(e.lmFormFilled?'<span style="color:var(--green)">✅</span>':'<span style="color:var(--yellow)">⏳</span>'):'–'}</td>
+          <td>${e.hired?'<span class="badge bHire">İşə Qəbul</span>':'<span class="badge bPend">Davam edir</span>'}</td>
+          <td style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="btn bGhost bSm" onclick="viewEval('${e.id}')">👁</button>
+            ${!e.recruiterApproved?`<button class="btn bWarning bSm" onclick="recApprove('${e.id}')">✓ Uyğun</button>`:''}
+            ${canHire?`<button class="btn bSuccess bSm" onclick="openHire('${e.id}')">🎉 İşə Qəbul</button>`:''}
+            ${canHire?`<button class="btn bInfo bSm" onclick="openCEO('${e.id}')">👔 CEO</button>`:''}
+            <button class="btn bGhost bSm" onclick="openNote('${e.id}','${CU.id}')">💬</button>
+          </td></tr>`;}).join(''):'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--txt3)">Namizəd yoxdur</td></tr>'}
+      </tbody>
+    </table></div>
+  </div>`);
 }
 
-// ═══════════════════════════════════════════════════════════════════
+function recApprove(evalId){
+  const ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
+  const note=prompt('Qeyd (ixtiyari):');
+  ev.recruiterNote=note||'';ev.recruiterApproved=true;ev.recruiterApprovedAt=now();ev.recruiterName=CU.name;
+  log(`Recruiter uyğun gördü: ${ev.candidateName}`,'G');
+  saveLocal(); save('evals', ev, 'update');
+  toast('Uyğun qeyd edildi','ok');pgRecCands();
+}
+
+let _hireId=null;
+function openHire(evalId){
+  _hireId=evalId;
+  const ev=DB.evals.find(e=>e.id===evalId);
+  const req=DB.requests.find(r=>r.id===ev?.requestId);
+  g('hireDetail').innerHTML=`<div style="padding:12px;background:var(--s3);border-radius:8px"><div class="fw6">${ev?.candidateName}</div><div class="tMuted tSm">${req?.positionTitle||''}</div></div>`;
+  g('hireNote').value='';
+  g('mHireFoot').innerHTML=`<button class="btn bGhost" onclick="cm('mHire')">İmtina</button><button class="btn bSuccess" onclick="confirmHire()">🎉 Təsdiqlə</button>`;
+  g('mHire').classList.remove('hidden');
+}
+function confirmHire(){
+  const ev=DB.evals.find(e=>e.id===_hireId);if(!ev)return;
+  ev.hired=true;ev.hiredAt=now();ev.hiredBy=CU.name;ev.hireNote=g('hireNote').value;
+  const req=DB.requests.find(r=>r.id===ev.requestId);
+  if(req){req.status='hired'; saveLocal(); save('requests', req, 'update');}
+  log(`🎉 İşə qəbul: ${ev.candidateName} (${CU.name})`,'P');
+  saveLocal(); save('evals', ev, 'update');
+  cm('mHire');toast(`${ev.candidateName} işə qəbul edildi! 🎉`,'ok');pgRecCands();
+}
+
+let _ceoId=null;
+function openCEO(evalId){
+  _ceoId=evalId;
+  const users=DB.users.filter(u=>u.role==='user'||u.role==='bv');
+  g('ceoSel').innerHTML=`<option value="">— Seçin —</option>${users.map(u=>`<option value="${u.id}">${u.name} (${u.position||roleLabel(u.role)})</option>`).join('')}`;
+  g('ceoNote').value='';g('mCEO').classList.remove('hidden');
+}
+function saveCEO(){
+  const ev=DB.evals.find(e=>e.id===_ceoId);if(!ev)return;
+  const id=g('ceoSel').value;if(!id){toast('Şəxs seçin','er');return;}
+  const u=DB.users.find(x=>x.id===id);
+  ev.ceoAssigned=id;ev.ceoNote=g('ceoNote').value;ev.ceoAssignedAt=now();
+  log(`${u?.name}-ə CEO müsahibəsi: ${ev.candidateName}`,'B');
+  saveLocal(); save('evals', ev, 'update');
+  cm('mCEO');toast(`${u?.name}-ə göndərildi`,'ok');
+}
+
+// ═══════════════════════════════════════════════════════════
 // USER PAGES
-// ═══════════════════════════════════════════════════════════════════
-function pgUserReqs() {
+// ═══════════════════════════════════════════════════════════
+function pgUserReqs(){
   setTitle('Tələb Formaları');
-  g('tbActs').innerHTML = '<button class="btn bPrimary" onclick="openReqForm()">➕ Yeni Tələb</button>';
-  
-  const myReqs = DB.requests.filter(r => r.createdById === CU.id);
-  
+  g('tbActs').innerHTML=`<button class="btn bPrimary" onclick="openReqForm()">➕ Yeni Tələb</button>`;
+  const pendMine=DB.requests.filter(r=>{
+    if(r.status!=='pending_approval')return false;
+    const chain=getChainForReq(r),idx=(r.approvals||[]).length;
+    return chain[idx]&&chain[idx].uid===CU.id;
+  });
+  const myReqs=DB.requests.filter(r=>r.createdById===CU.id);
   setMC(`
-    <div class="card">
-      <div class="cTitle">📄 Mənim Tələblərim (${myReqs.length})</div>
-      ${myReqs.length ? `
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Vəzifə</th><th>Departament</th><th>Status</th><th>Tarix</th><th></th></tr></thead>
-            <tbody>
-              ${myReqs.map(r => `
-                <tr>
-                  <td><strong>${r.positionTitle}</strong></td>
-                  <td>${r.department || '–'}</td>
-                  <td><span class="badge ${sb(r.status)}">${st(r.status)}</span></td>
-                  <td class="tMuted">${r.createdAt}</td>
-                  <td><button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁 Bax</button></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      ` : emptyState('📭', 'Hələ tələb yaratmamısınız')}
-    </div>
-  `);
+${pendMine.length?`<div class="card" style="border-color:var(--yellow)">
+  <div class="cTitle">⏳ Sizin Növbənizdir!</div>
+  ${pendMine.map(r=>`<div class="fBetween" style="padding:12px;background:var(--s2);border-radius:8px;margin-bottom:8px">
+    <div><div class="fw6">${r.positionTitle}</div><div class="tMuted tSm">${r.department||''} · ${r.createdByName}</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
+      <button class="btn bDanger bSm" onclick="rejectReq('${r.id}')">✕ Rədd</button>
+      <button class="btn bSuccess bSm" onclick="approveReq('${r.id}')">✓ Təsdiqlə</button>
+    </div></div>`).join('')}
+</div>`:''}
+<div class="card">
+  <div class="cTitle">📄 Mənim Tələblərim (${myReqs.length})</div>
+  ${myReqs.length?`<div class="tableWrap"><table>
+    <thead><tr><th>Vəzifə</th><th>Departament</th><th>Status</th><th>Tarix</th><th></th></tr></thead>
+    <tbody>${myReqs.map(r=>`<tr>
+      <td><strong>${r.positionTitle}</strong></td><td>${r.department||'–'}</td>
+      <td><span class="badge ${sb(r.status)}">${st(r.status)}</span></td>
+      <td class="tMuted">${r.createdAt}</td>
+      <td><button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁 Bax</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`:emptyState('📭','Hələ tələb yaratmamısınız')}
+</div>`);
 }
 
-function pgUserEvals() {
+function pgUserEvals(){
   setTitle('Dəyərləndirmələrim');
-  const myEv = DB.evals.filter(e => e.lineManagerId === CU.id);
-  
-  setMC(`
-    <div class="card">
-      <div class="cTitle">🎯 Sizə Təhkim Olunmuş (${myEv.length})</div>
-      ${myEv.length ? `
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Namizəd</th><th>Vəzifə</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              ${myEv.map(e => {
-                const req = DB.requests.find(r => r.id === e.requestId);
-                return `
-                  <tr>
-                    <td><strong>${e.candidateName}</strong></td>
-                    <td>${req ? req.positionTitle : '–'}</td>
-                    <td>${e.lmFormFilled ? '<span class="badge bAppr">✅ Doldu</span>' : '<span class="badge bPend">⏳ Doldurun</span>'}</td>
-                    <td>
-                      <button class="btn bGhost bSm" onclick="viewEval('${e.id}')">👁</button>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      ` : emptyState('📭', 'Sizə dəyərləndirmə təhkim edilməyib')}
-    </div>
-  `);
+  const myEv=DB.evals.filter(e=>e.lineManagerId===CU.id||e.ceoAssigned===CU.id);
+  setMC(`<div class="card">
+    <div class="cTitle">🎯 Sizə Təhkim Olunmuş (${myEv.length})</div>
+    ${myEv.filter(e=>e.lineManagerId===CU.id&&!e.lmFormFilled).length>0
+      ?`<div class="alert aDanger">⚠️ ${myEv.filter(e=>e.lineManagerId===CU.id&&!e.lmFormFilled).length} form doldurulmasını gözləyir!</div>`:''}
+    ${myEv.length?`<div class="tableWrap"><table>
+      <thead><tr><th>Namizəd</th><th>Vəzifə</th><th>Tarix</th><th>Sizin Status</th><th></th></tr></thead>
+      <tbody>${myEv.map(e=>{
+        const req=DB.requests.find(r=>r.id===e.requestId);
+        const isLM=e.lineManagerId===CU.id,isCEO=e.ceoAssigned===CU.id;
+        return `<tr>
+          <td><strong>${e.candidateName}</strong>${isLM&&!e.lmFormFilled?'<span class="badge bPend" style="font-size:10px;margin-left:4px">⚠ Form</span>':''}</td>
+          <td>${req?req.positionTitle:'–'}</td><td>${e.interviewDate}</td>
+          <td>${isLM?(e.lmFormFilled?'<span class="badge bAppr">✅ Doldu</span>':'<span class="badge bPend">⏳ Doldurun</span>'):'–'}</td>
+          <td style="display:flex;gap:4px">
+            <button class="btn bGhost bSm" onclick="viewEval('${e.id}')">👁</button>
+            ${isLM?`<button class="btn bWarning bSm" onclick="openLmEvalForm('${e.id}')">${e.lmFormFilled?'✏️ Yenilə':'📋 Doldur'}</button>`:''}
+            ${isCEO&&!e.ceoApproved?`<button class="btn bWarning bSm" onclick="ceoApprove('${e.id}')">✓ CEO</button>`:''}
+            <button class="btn bGhost bSm" onclick="openNote('${e.id}','${CU.id}')">💬</button>
+          </td></tr>`;}).join('')}
+      </tbody></table></div>`:emptyState('📭','Sizə dəyərləndirmə təhkim edilməyib')}
+  </div>`);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// OTHER ADMIN PAGES
-// ═══════════════════════════════════════════════════════════════════
-function pgAllEvals() {
+function openLmEvalForm(evalId){
+  const ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
+  const req=DB.requests.find(r=>r.id===ev.requestId);
+  g('mEvalBody').innerHTML=`
+<div class="alert aInfo">Namizəd: <strong>${ev.candidateName}</strong> · Vəzifə: <strong>${req?req.positionTitle:'–'}</strong></div>
+<input type="hidden" id="lm_evalId" value="${evalId}">
+<div class="fSec"><div class="fSecTitle">Şöbə Rəhbəri Dəyərləndirməsi</div>
+  <table class="eTable">
+    <thead><tr><th>Meyar</th><th>Əla</th><th>Yaxşı</th><th>Orta</th><th>Zəif</th></tr></thead>
+    <tbody>${ECRIT.map((c,i)=>`<tr><td>${c.az}</td>${RVALS.map(v=>`<td class="rcell"><input type="radio" name="lm_ec_${i}" value="${v}" ${ev.lmRatings&&ev.lmRatings[i]===v?'checked':''}></td>`).join('')}</tr>`).join('')}</tbody>
+  </table>
+</div>
+<div class="fSec">
+  <div class="fGroup"><label>Əmək haqqı gözlənti</label><input id="lm_sal" value="${ev.lmSalaryExp||''}"></div>
+  <div class="fGroup"><label>Tövsiyyə</label><textarea id="lm_recs">${ev.lmRecs||''}</textarea></div>
+  <div class="fGroup"><label>Əlavə qeydlər</label><textarea id="lm_add">${ev.lmAdditionalComments||''}</textarea></div>
+</div>
+<div class="fSec"><div class="fSecTitle">Şöbə Rəhbərinin Qərarı</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px"><input type="radio" name="lm_res" value="suitable" ${ev.lmRecommendation==='suitable'?'checked':''}> ✅ Uyğundur</label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px"><input type="radio" name="lm_res" value="other_position" ${ev.lmRecommendation==='other_position'?'checked':''}> 🔄 Digər vakansiya</label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px"><input type="radio" name="lm_res" value="not_suitable" ${ev.lmRecommendation==='not_suitable'?'checked':''}> ❌ Uyğun deyil</label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px;background:var(--s3);border-radius:8px"><input type="radio" name="lm_res" value="blacklist" ${ev.lmRecommendation==='blacklist'?'checked':''}> ⛔ Qara Siyahı</label>
+  </div>
+</div>`;
+  g('mEvalFoot').innerHTML=`<button class="btn bGhost" onclick="cm('mEval')">İmtina</button><button class="btn bPrimary" onclick="submitLmEval()">Yadda Saxla ✓</button>`;
+  g('mEval').classList.remove('hidden');
+}
+function submitLmEval(){
+  const evalId=g('lm_evalId').value,ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
+  const res=document.querySelector('input[name="lm_res"]:checked');
+  if(!res){toast('Qərar seçin','er');return;}
+  const lmRatings=ECRIT.map((_,i)=>{const r=document.querySelector(`input[name="lm_ec_${i}"]:checked`);return r?r.value:null;});
+  ev.lmRatings=lmRatings;ev.lmRecommendation=res.value;
+  ev.lmRecs=g('lm_recs').value;ev.lmSalaryExp=g('lm_sal').value;ev.lmAdditionalComments=g('lm_add').value;
+  ev.lmFormFilled=true;ev.lmFilledAt=now();ev.lineManagerApproved=true;ev.lineManagerApprovedAt=now();ev.lineManagerName=CU.name;
+  log(`LM dəyərləndirdi: ${ev.candidateName} (${CU.name})`,'G');
+  saveLocal(); save('evals', ev, 'update');
+  cm('mEval');toast('Dəyərləndirmə yadda saxlandı!','ok');pgUserEvals();
+}
+function ceoApprove(evalId){
+  const ev=DB.evals.find(e=>e.id===evalId);if(!ev)return;
+  const note=prompt('CEO notu (ixtiyari):');
+  ev.ceoNote2=note||'';ev.ceoApproved=true;ev.ceoApprovedAt=now();ev.ceoName=CU.name;
+  log(`CEO uyğun gördü: ${ev.candidateName}`,'P');
+  saveLocal(); save('evals', ev, 'update');
+  toast('Uyğun qeyd edildi','ok');pgUserEvals();
+}
+
+function pgUserNotes(){
+  setTitle('Qeydlər');
+  const notes=DB.notes.filter(n=>n.toId===CU.id||n.fromId===CU.id).sort((a,b)=>b.ts.localeCompare(a.ts));
+  setMC(`<div class="card">
+    <div class="cTitle">💬 Qeydlər (${notes.length})</div>
+    ${notes.length?notes.map(n=>{
+      const from=DB.users.find(u=>u.id===n.fromId),isToMe=n.toId===CU.id;
+      return `<div class="noteItem">
+        <div class="noteHead"><div class="noteAuthor">${from?.name||'?'}</div><div class="noteTime">${n.ts}</div>${isToMe&&!n.reply?'<span class="badge bPend" style="margin-left:auto">Cavabsız</span>':''}</div>
+        <div class="noteTxt">${n.txt}</div>
+        ${n.reply?`<div class="noteReply">↩ ${n.reply}</div>`:''}
+        ${isToMe&&n.fromId!==CU.id&&!n.reply?`<button class="btn bGhost bSm mt8" onclick="replyNote('${n.id}')">↩ Cavabla</button>`:''}
+      </div>`;}).join(''):emptyState('💬','Qeyd yoxdur')}
+  </div>`);
+}
+function replyNote(noteId){
+  const txt=prompt('Cavabınız:');if(!txt)return;
+  const n=DB.notes.find(x=>x.id===noteId);
+  if(n){n.reply=txt;n.replyTime=now();n.replyBy=CU.name;}
+  saveLocal();toast('Cavab göndərildi','ok');pgUserNotes();
+}
+
+let _noteEvalId=null,_noteToId=null;
+function openNote(evalId,toId){
+  _noteEvalId=evalId;_noteToId=toId;
+  const list=DB.notes.filter(n=>n.evalId===evalId);
+  g('noteList').innerHTML=list.length?list.map(n=>{
+    const from=DB.users.find(u=>u.id===n.fromId);
+    return `<div class="noteItem"><div class="noteHead"><div class="noteAuthor">${from?.name||'?'}</div><div class="noteTime">${n.ts}</div></div><div class="noteTxt">${n.txt}</div>${n.reply?`<div class="noteReply">↩ ${n.reply}</div>`:''}</div>`;
+  }).join(''):'<div class="tMuted tSm">Hələ qeyd yoxdur</div>';
+  g('noteTxt').value='';
+  g('mNoteFoot').innerHTML=`<button class="btn bGhost" onclick="cm('mNote')">Bağla</button><button class="btn bPrimary" onclick="saveNote()">Göndər ✓</button>`;
+  g('mNote').classList.remove('hidden');
+}
+function saveNote(){
+  const txt=g('noteTxt').value.trim();if(!txt)return;
+  DB.notes.push({id:uid(),evalId:_noteEvalId,fromId:CU.id,toId:_noteToId,txt,ts:now(),reply:'',replyBy:''});
+  saveLocal();toast('Qeyd göndərildi','ok');cm('mNote');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN: ALL EVALS, PENDING, REPORTS
+// ═══════════════════════════════════════════════════════════
+function pgAllEvals(){
   setTitle('Dəyərləndirmələr');
-  setMC(`
-    <div class="card">
-      <div class="cTitle">🎯 Bütün Dəyərləndirmələr (${DB.evals.length})</div>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr><th>Namizəd</th><th>Vəzifə</th><th>Recruiter</th><th>Qərar</th><th>Status</th></tr>
-          </thead>
-          <tbody>
-            ${DB.evals.length ? DB.evals.map(e => {
-              const req = DB.requests.find(r => r.id === e.requestId);
-              return `
-                <tr>
-                  <td><strong>${e.candidateName}</strong></td>
-                  <td>${req ? req.positionTitle : '–'}</td>
-                  <td>${e.createdByName}</td>
-                  <td><span class="badge ${rb(e.recommendation)}">${rt(e.recommendation)}</span></td>
-                  <td>${e.hired ? '<span class="badge bHire">İşə Qəbul</span>' : '<span class="badge bPend">Davam edir</span>'}</td>
-                </tr>
-              `;
-            }).join('') : '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--txt3)">Dəyərləndirmə yoxdur</td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `);
+  setMC(`<div class="card">
+    <div class="cTitle">🎯 Bütün Dəyərləndirmələr (${DB.evals.length})</div>
+    <div class="tableWrap"><table>
+      <thead><tr><th>Namizəd</th><th>Vəzifə</th><th>Recruiter</th><th>Tarix</th><th>Qərar</th><th>R.✓</th><th>LM.✓</th><th>CEO.✓</th><th>Status</th><th></th></tr></thead>
+      <tbody>${DB.evals.length?DB.evals.map(e=>{
+        const req=DB.requests.find(r=>r.id===e.requestId);
+        return `<tr>
+          <td><strong>${e.candidateName}</strong></td><td>${req?req.positionTitle:'–'}</td>
+          <td>${e.createdByName}</td><td>${e.interviewDate}</td>
+          <td><span class="badge ${rb(e.recommendation)}">${rt(e.recommendation)}</span></td>
+          <td>${e.recruiterApproved?'✅':'–'}</td>
+          <td>${e.lineManagerId?(e.lmFormFilled?'<span style="color:var(--green)">✅</span>':'<span style="color:var(--yellow)">⏳</span>'):'–'}</td>
+          <td>${e.ceoApproved?'✅':e.ceoAssigned?'⏳':'–'}</td>
+          <td>${e.hired?'<span class="badge bHire">İşə Qəbul</span>':'<span class="badge bPend">Davam edir</span>'}</td>
+          <td><button class="btn bGhost bSm" onclick="viewEval('${e.id}')">👁</button></td></tr>`;}).join(''):'<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--txt3)">Dəyərləndirmə yoxdur</td></tr>'}
+      </tbody></table></div>
+  </div>`);
 }
 
-function pgPending() {
+function pgPending(){
   setTitle('Gözləyən Təsdiqlər');
-  const pend = DB.requests.filter(r => r.status === 'pending_approval');
-  
-  setMC(`
-    <div class="card">
-      <div class="cTitle">⏳ Gözləyən Təsdiqlər (${pend.length})</div>
-      ${pend.length ? `
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th>ID</th><th>Vəzifə</th><th>Dep.</th><th>Yaradan</th><th>Kimdə</th><th></th></tr>
-            </thead>
-            <tbody>
-              ${pend.map(r => {
-                const chain = getChainForReq(r);
-                const idx = (r.approvals || []).length;
-                const pu = chain[idx] ? DB.users.find(u => u.id === chain[idx].uid) : null;
-                
-                return `
-                  <tr>
-                    <td><code style="color:var(--acc2)">#${r.reqId}</code></td>
-                    <td><strong>${r.positionTitle}</strong></td>
-                    <td>${r.department || '–'}</td>
-                    <td>${r.createdByName}</td>
-                    <td style="color:var(--yellow)">⏳ ${pu ? pu.name : '–'}</td>
-                    <td>
-                      <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
-                      <button class="btn bSuccess bSm" onclick="adminApproveAll('${r.id}')">✓✓</button>
-                      <button class="btn bDanger bSm" onclick="adminRejectReq('${r.id}')">✕</button>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      ` : emptyState('✅', 'Gözləyən təsdiq yoxdur')}
-    </div>
-  `);
+  const pend=DB.requests.filter(r=>r.status==='pending_approval').sort((a,b)=>(a.createdAtMs||0)-(b.createdAtMs||0));
+  setMC(`<div class="card">
+    <div class="cTitle">⏳ Gözləyən Təsdiqlər (${pend.length})</div>
+    ${pend.length?`<div class="tableWrap"><table>
+      <thead><tr><th>ID</th><th>Vəzifə</th><th>Dep.</th><th>Yaradan</th><th>Kimdə</th><th>Zəncir</th><th>Müddət</th><th></th></tr></thead>
+      <tbody>${pend.map(r=>{
+        const chain=getChainForReq(r),done=r.approvals||[],idx=done.length;
+        const pu=chain[idx]?DB.users.find(u=>u.id===chain[idx].uid):null;
+        const days=r.createdAtMs?Math.floor((Date.now()-r.createdAtMs)/86400000):0;
+        return `<tr>
+          <td><code style="color:var(--acc2)">#${r.reqId}</code></td>
+          <td><strong>${r.positionTitle}</strong></td>
+          <td>${r.department||'–'}</td><td>${r.createdByName}</td>
+          <td style="color:var(--yellow)">⏳ ${pu?pu.name:'–'}</td>
+          <td><div style="display:flex;gap:3px">${chain.map((s,i)=>{
+            const isDone=!!done[i],isCur=i===idx;
+            return `<div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:${isDone?'var(--green2)':isCur?'var(--yellow2)':'var(--s3)'};border:1.5px solid ${isDone?'var(--green)':isCur?'var(--yellow)':'var(--border)'};color:${isDone?'var(--green)':isCur?'var(--yellow)':'var(--txt3)'}">${isDone?'✓':i+1}</div>`;}).join('')}</div>
+            <div class="tMuted tSm">${done.length}/${chain.length}</div>
+          </td>
+          <td style="font-weight:700;color:${days>=3?'var(--red)':days>1?'var(--yellow)':'var(--green)'}">${days===0?'Bu gün':days+' gün'}</td>
+          <td style="display:flex;flex-direction:column;gap:4px">
+            <button class="btn bGhost bSm" onclick="viewReq('${r.id}')">👁</button>
+            <button class="btn bWarning bSm" onclick="adminAdvanceReq('${r.id}')">⏩</button>
+            <button class="btn bSuccess bSm" onclick="adminApproveAll('${r.id}')">✓✓</button>
+            <button class="btn bDanger bSm" onclick="adminRejectReq('${r.id}')">✕</button>
+          </td></tr>`;}).join('')}
+      </tbody></table></div>`:emptyState('✅','Gözləyən təsdiq yoxdur')}
+  </div>`);
 }
 
-function pgReports() {
+function pgReports(){
   setTitle('Hesabatlar');
+  g('tbActs').innerHTML=`<button class="btn bSuccess bSm" onclick="exportExcel()">📥 Excel İxrac</button>`;
   setMC(`
-    <div class="statsGrid">
-      <div class="statCard purple"><div class="statVal">${DB.requests.length}</div><div class="statLbl">Cəmi Tələb</div></div>
-      <div class="statCard blue"><div class="statVal">${DB.requests.filter(r => r.status === 'inprog').length}</div><div class="statLbl">Aktiv</div></div>
-      <div class="statCard yellow"><div class="statVal">${DB.evals.length}</div><div class="statLbl">Dəyərləndirmə</div></div>
-      <div class="statCard green"><div class="statVal">${DB.evals.filter(e => e.hired).length}</div><div class="statLbl">İşə Qəbul</div></div>
-    </div>
-  `);
+<div class="statsGrid">
+  <div class="statCard purple"><div class="statVal">${DB.requests.length}</div><div class="statLbl">Cəmi Tələb</div></div>
+  <div class="statCard blue"><div class="statVal">${DB.requests.filter(r=>r.status==='inprog').length}</div><div class="statLbl">Aktiv</div></div>
+  <div class="statCard yellow"><div class="statVal">${DB.evals.length}</div><div class="statLbl">Dəyərləndirmə</div></div>
+  <div class="statCard green"><div class="statVal">${DB.evals.filter(e=>e.hired).length}</div><div class="statLbl">İşə Qəbul</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="card">
+    <div class="cTitle">📄 Tələblər</div>
+    <div class="tableWrap"><table>
+      <thead><tr><th>Vəzifə</th><th>Dep.</th><th>Status</th><th>Tarix</th></tr></thead>
+      <tbody>${DB.requests.map(r=>`<tr><td>${r.positionTitle}</td><td>${r.department||'–'}</td><td><span class="badge ${sb(r.status)}">${st(r.status)}</span></td><td class="tMuted tSm">${r.createdAt}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--txt3)">Məlumat yoxdur</td></tr>'}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="cTitle">🎯 Dəyərləndirmələr</div>
+    <div class="tableWrap"><table>
+      <thead><tr><th>Namizəd</th><th>Qərar</th><th>İşə Qəbul</th></tr></thead>
+      <tbody>${DB.evals.map(e=>`<tr><td>${e.candidateName}</td><td><span class="badge ${rb(e.recommendation)}">${rt(e.recommendation)}</span></td><td>${e.hired?'<span class="badge bHire">Bəli</span>':'Xeyr'}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--txt3)">Məlumat yoxdur</td></tr>'}</tbody>
+    </table></div>
+  </div>
+</div>`);
+  updateSyncBar();
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// DEBUG PANEL
-// ═══════════════════════════════════════════════════════════════════
-function runDebug() {
-  const url = g('debugUrl').value.trim();
-  const action = g('debugAction').value;
-  const output = g('debugOutput');
-  
-  if (url) setSheetsUrl(url);
-  
-  output.innerHTML = '<div class="tMuted">Göndərilir...</div>';
-  
-  if (action === 'ping') {
-    apiCall('ping', '', {},
-      function(res) {
-        output.innerHTML = '<div class="tGreen">✅ ' + JSON.stringify(res) + '</div>';
-      },
-      function(err) {
-        output.innerHTML = '<div class="tRed">❌ ' + err + '</div>';
-      }
-    );
-  } else if (action === 'getAll') {
-    sheetsReadAll(
-      function() {
-        output.innerHTML = '<div class="tGreen">✅ Oxundu: ' + DB.users.length + ' istifadəçi, ' + DB.requests.length + ' tələb</div>';
-      },
-      function(err) {
-        output.innerHTML = '<div class="tRed">❌ ' + err + '</div>';
-      }
-    );
-  } else if (action === 'addRow') {
-    const testUser = {
-      id: 'test_' + Date.now(),
-      name: 'Test User',
-      login: 'test_' + Math.floor(Math.random()*1000),
-      pass: '1234',
-      role: 'user',
-      position: 'Test',
-      email: 'test@test.com',
-      bu: 'Test BU',
-      department: 'Test Dept',
-      struct: ''
-    };
-    apiCall('addRow', 'users', testUser,
-      function(res) {
-        output.innerHTML = '<div class="tGreen">✅ ' + JSON.stringify(res) + '</div>';
-      },
-      function(err) {
-        output.innerHTML = '<div class="tRed">❌ ' + err + '</div>';
-      }
-    );
-  }
-}
-
-function saveDebugUrl() {
-  const url = g('debugUrl').value.trim();
-  if (url) {
-    setSheetsUrl(url);
-    toast('URL yadda saxlandı', 'ok');
-  }
-}
-
-// Initialize debug URL field
-document.addEventListener('DOMContentLoaded', function() {
+// ═══════════════════════════════════════════════════════════
+// GİRİŞ JURNALI (Admin)
+// ═══════════════════════════════════════════════════════════
+function pgLoginLog(){
+  setTitle('Giriş Jurnalı');
   const url = getSheetsUrl();
-  if (url && g('debugUrl')) g('debugUrl').value = url;
-});
+  g('tbActs').innerHTML = url
+    ? `<a href="https://drive.google.com/drive/search?q=GHG_Recruitment" target="_blank" class="btn bSuccess bSm">📊 Sheets-də Bax</a>`
+    : `<button class="btn bGhost bSm" onclick="openSheetsSetup()">⚙️ Sheets URL</button>`;
+  setMC(`
+<div class="card">
+  <div class="cTitle">🔐 Giriş Jurnalı</div>
+  <div class="alert aInfo" style="margin-bottom:16px">
+    <div>
+      <strong>Giriş məlumatları birbaşa Google Sheets-ə yazılır.</strong><br>
+      <span style="font-size:12px">Hər giriş zamanı: Ad, login, rol, IP ünvanı, cihaz tipi, brauzer, ekran ölçüsü qeyd olunur.
+      ${url?'<br><a href="https://drive.google.com/drive/search?q=GHG_Recruitment" target="_blank" style="color:var(--acc2)">Cədvəli açmaq üçün buraya basın →</a>':' Əvvəlcə Sheets URL-ni quraşdırın.'}</span>
+    </div>
+  </div>
+  <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+      ${[
+        ['📅','Tarix','Giriş tarixi və saatı'],
+        ['👤','Ad Soyad','İstifadəçinin adı'],
+        ['🔑','Login','İstifadəçi adı'],
+        ['🎭','Rol','Admin / Recruiter / BV / User'],
+        ['🌐','IP Ünvanı','İnternet IP adresi'],
+        ['📱','Cihaz','Mobil / Tablet / Kompüter'],
+        ['🖥️','Brauzer / OS','Chrome, Safari, Windows...'],
+        ['📐','Ekran','Ekran ölçüsü (px)'],
+      ].map(([ic,name,desc])=>`
+      <div style="padding:12px;background:var(--s3);border-radius:8px">
+        <div style="font-size:18px;margin-bottom:4px">${ic}</div>
+        <div class="fw6" style="font-size:13px">${name}</div>
+        <div class="tMuted tSm">${desc}</div>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:16px;padding:14px;background:var(--acc3);border:1px solid var(--acc);border-radius:8px;font-size:13px;color:var(--acc2)">
+      📋 Google Sheets-də <strong>"Girisler"</strong> adlı cədvəldə saxlanılır. Ən yeni giriş yuxarıda göstərilir.
+    </div>
+  </div>
+</div>`);
+}
+
+
+function exportExcel(){
+  if(typeof XLSX==='undefined'){toast('Excel kitabxanası yüklənmədi','er');return;}
+  const wb=XLSX.utils.book_new();
+  const r1=[['ID','Vəzifə','Departament','Yaradan','Status','Tarix']];
+  DB.requests.forEach(r=>r1.push([r.reqId||r.id.slice(-5),r.positionTitle,r.department||'',r.createdByName,st(r.status),r.createdAt]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(r1),'Tələblər');
+  const r2=[['Namizəd','Vəzifə','Recruiter','Tarix','Qərar','İşə Qəbul']];
+  DB.evals.forEach(e=>{
+    const req=DB.requests.find(r=>r.id===e.requestId);
+    r2.push([e.candidateName,req?req.positionTitle:'',e.createdByName,e.interviewDate,rt(e.recommendation),e.hired?'Bəli':'Xeyr']);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(r2),'Dəyərləndirmələr');
+  XLSX.writeFile(wb,'GHG_Report.xlsx');toast('Excel export edildi!','ok');
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function g(id){return document.getElementById(id);}
+function cm(id){g(id).classList.add('hidden');}
+function td(){return new Date().toISOString().slice(0,10);}
+
+function toast(msg,type='in'){
+  const icons={ok:'✅',er:'❌',in:'ℹ️'};
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  g('toasts').appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+function emptyState(icon,txt){return `<div class="emptyState"><div class="ei">${icon}</div><p>${txt}</p></div>`;}
+function sb(s){return s==='pending_approval'?'bPend':s==='approved'||s==='inprog'?'bProg':s==='rejected'?'bRej':s==='hired'?'bHire':'bPend';}
+function st(s){const m={pending_approval:'Təsdiqdə',approved:'Təsdiqləndi',inprog:'Prosesdə',rejected:'Rədd edildi',hired:'İşə Qəbul'};return m[s]||s;}
+function rb(r){return r==='suitable'?'bAppr':r==='not_suitable'?'bRej':r==='other_position'?'bProg':r==='blacklist'?'bRej':'bPend';}
+function rt(r){const m={suitable:'Uyğundur',not_suitable:'Uyğun deyil',other_position:'Digər vakansiya',blacklist:'Qara siyahı'};return m[r]||r||'–';}
+function jdCount(el){const n=el.value.trim().length;const c=g('jdCnt');if(c){c.textContent=n+' / 160 hərf';c.style.color=n>=160?'var(--green)':'var(--red)';}}
 </script>
 </body>
 </html>
