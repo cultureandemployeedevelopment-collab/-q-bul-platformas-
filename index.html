@@ -367,7 +367,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--s2);padding:2px 7px
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzxYF5SpnOFGxUkbr6D8PNm3HpfmyiPVde8Vq7vwRDG6z4m6XQEdrl_3NYpGcDviwaa/exec';
+const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwVpq9KUMRZ2mEwEhhSvn0s7R3dlAXtr5D831XbWsWNGhbLTqI_YcSTDv9281MlPrbF/exec';
 const SK = 'gha_v8';
 const SHEETS_URL_KEY = 'gha_sheets_url';
 
@@ -446,76 +446,94 @@ function saveSheetsUrl(){
 
 // ── Əsas Sinxronizasiya Funksiyası ──────────────────────────────
 // Google Apps Script ilə işləmək üçün ən etibarlı üsul:
-// fetch() ilə no-cors POST göndəririk. Cavab oxunmur (opaque),
-// amma data Sheets-ə yazılır. Buna görə "ok" status simulyasiya edirik.
+// ═══════════════════════════════════════════════════════════
+// ANA SİNXRONİZASİYA — Hissəli JSONP (Chunked)
+// Google Apps Script JSONP ilə işləyir, amma URL ~8000 char limit var.
+// Buna görə hər cədvəli ayrıca göndəririk.
+// ═══════════════════════════════════════════════════════════
 function syncToSheets(silent){
   if(silent===undefined) silent=false;
   const url = getSheetsUrl();
   if(!url){ if(!silent) openSheetsSetup(); return; }
 
   setSyncState('spin','Sinxronlaşdırılır...');
+  if(!silent) toast('Sheets-ə göndərilir...','in');
 
-  const payload = {
-    action: 'sync',
-    users:    DB.users,
-    requests: DB.requests,
-    evals:    DB.evals,
-    chains:   DB.chains,
-    logs:     DB.logs.slice(0,200)
-  };
+  // Hər cədvəli ayrıca göndər
+  const tasks = [
+    { table:'users',    data: DB.users },
+    { table:'requests', data: DB.requests },
+    { table:'evals',    data: DB.evals },
+    { table:'chains',   data: DB.chains },
+    { table:'logs',     data: DB.logs.slice(0,100) }
+  ];
 
-  // Metod 1: fetch no-cors (data göndərilir, amma cavab oxunmur)
-  fetch(url, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'data=' + encodeURIComponent(JSON.stringify(payload))
-  })
-  .then(function(){
-    // no-cors ilə cavab opaque olur, buna görə uğurlu sayırıq
-    setSyncState('ok', 'Son sinxron: ' + now());
-    if(!silent) toast('Google Sheets-ə göndərildi! ✅','ok');
-    log('Google Sheets sinxronlaşdırıldı','G');
-  })
-  .catch(function(err){
-    // fetch xətası olduqda JSONP ilə cəhd edirik
-    syncToSheetsJSONP(url, payload, silent);
-  });
-}
+  let idx = 0;
+  let errors = 0;
 
-// ── Ehtiyat: JSONP Metodu ────────────────────────────────────────
-function syncToSheetsJSONP(url, payload, silent){
-  const cbName = 'ghg_sync_' + Date.now();
-  
-  // Data həcmini azaldırıq (URL limiti üçün)
-  const smallPayload = {
-    action: 'sync',
-    users:    payload.users,
-    requests: payload.requests.slice(0, 50),
-    evals:    payload.evals.slice(0, 50),
-    chains:   payload.chains,
-    logs:     payload.logs.slice(0, 50)
-  };
-
-  const dataStr = JSON.stringify(smallPayload);
-  
-  // URL çox uzun olarsa problem yaranır
-  if(dataStr.length > 6000){
-    // Form POST metodu ilə göndər
-    syncViaFormPost(url, dataStr, silent);
-    return;
+  function sendNext(){
+    if(idx >= tasks.length){
+      if(errors === 0){
+        setSyncState('ok','Son sinxron: ' + now());
+        if(!silent) toast('Bütün cədvəllər Sheets-ə yazıldı ✅','ok');
+        log('Google Sheets sinxronlaşdırıldı (' + tasks.length + ' cədvəl)','G');
+      } else {
+        setSyncState('er', errors + ' cədvəl xəta verdi');
+        if(!silent) toast(errors + ' cədvəldə xəta var. Apps Script URL-ni yoxlayın.','er');
+      }
+      return;
+    }
+    const task = tasks[idx];
+    idx++;
+    setSyncState('spin', task.table + ' göndərilir... (' + idx + '/' + tasks.length + ')');
+    jsonpCall(url, { action:'syncTable', table: task.table, data: task.data },
+      function(res){
+        if(!res || !res.ok) errors++;
+        sendNext();
+      },
+      function(err){
+        errors++;
+        sendNext();
+      },
+      12000
+    );
   }
 
-  const fullUrl = url + '?callback=' + cbName + '&data=' + encodeURIComponent(dataStr);
+  sendNext();
+}
+
+// ── Universal JSONP çağırışı ──────────────────────────────────────
+function jsonpCall(url, params, onSuccess, onError, timeout){
+  if(!timeout) timeout = 15000;
+  const cbName = 'ghg_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+  
+  const dataStr = JSON.stringify(params.data || params);
+  let fullUrl = url + '?callback=' + cbName;
+  
+  // action və table parametrlərini ayrıca əlavə et
+  if(params.action) fullUrl += '&action=' + encodeURIComponent(params.action);
+  if(params.table)  fullUrl += '&table='  + encodeURIComponent(params.table);
+  fullUrl += '&data=' + encodeURIComponent(dataStr);
+
+  // URL çox uzundursa xəbərdarlıq ver (8000+ char problem ola bilər)
+  if(fullUrl.length > 7500){
+    // Datanı kəs
+    const arr = params.data;
+    if(Array.isArray(arr) && arr.length > 10){
+      // Yalnız ilk 30 elementi göndər
+      const trimmed = Object.assign({}, params, { data: arr.slice(0,30) });
+      jsonpCall(url, trimmed, onSuccess, onError, timeout);
+      return;
+    }
+  }
+
   const script = document.createElement('script');
   script.src = fullUrl;
 
   const timer = setTimeout(function(){
     cleanup();
-    setSyncState('er','Timeout (15s)');
-    if(!silent) toast('Sinxron timeout. Form metodu ilə cəhd edilir...','in');
-    syncViaFormPost(url, JSON.stringify(payload), silent);
-  }, 15000);
+    onError(new Error('Timeout'));
+  }, timeout);
 
   function cleanup(){
     clearTimeout(timer);
@@ -525,25 +543,18 @@ function syncToSheetsJSONP(url, payload, silent){
 
   window[cbName] = function(result){
     cleanup();
-    if(result && result.ok){
-      setSyncState('ok', 'Son sinxron: ' + now());
-      if(!silent) toast('Sheets sinxronlaşdırıldı! ✅','ok');
-    } else {
-      setSyncState('er', 'Xəta: ' + (result&&result.msg||'naməlum'));
-      if(!silent) toast('Sinxron xətası','er');
-    }
+    onSuccess(result);
   };
 
   script.onerror = function(){
     cleanup();
-    setSyncState('er','Script xətası');
-    syncViaFormPost(url, JSON.stringify(payload), silent);
+    onError(new Error('Script load error'));
   };
 
   document.head.appendChild(script);
 }
 
-// ── Form POST Metodu (ən etibarlı, lakin cavab oxunmur) ──────────
+// ── Form POST (ehtiyat, cavab oxunmur) ───────────────────────────
 function syncViaFormPost(url, dataStr, silent){
   setSyncState('spin','Form POST ilə göndərilir...');
   
@@ -551,7 +562,7 @@ function syncViaFormPost(url, dataStr, silent){
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = url;
-    form.target = 'syncFrame'; // hidden iframe-ə
+    form.target = 'syncFrame';
     form.style.display = 'none';
 
     const input = document.createElement('input');
@@ -570,10 +581,9 @@ function syncViaFormPost(url, dataStr, silent){
     form.submit();
     
     setTimeout(function(){
-      document.body.removeChild(form);
+      if(document.body.contains(form)) document.body.removeChild(form);
     }, 1000);
 
-    // Form POST-dan cavab almaq mümkün deyil (CORS), amma data göndərilir
     setTimeout(function(){
       setSyncState('ok', 'Son sinxron: ' + now());
       if(!silent) toast('Data Sheets-ə göndərildi ✅','ok');
